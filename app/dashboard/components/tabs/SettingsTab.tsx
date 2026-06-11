@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import VersionsTab from './VersionsTab';
 
 interface ProcessedVoice {
   voice_id: string;
@@ -71,6 +72,12 @@ interface SettingsTabProps {
   onVoiceUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onCloneVoice: () => void;
   activePlan?: string;
+  editedPrompt: string;
+  setEditedPrompt: (val: string) => void;
+  versions: { version: number; date: string; prompt: string; tone: string; services: string }[];
+  isDeployingPrompt: boolean;
+  onDeploy: (promptText: string) => void;
+  onRestore: (prompt: string, version: number) => void;
 }
 
 const TONE_OPTIONS = ['Warm and friendly', 'Professional and formal', 'Upbeat and energetic'];
@@ -105,6 +112,7 @@ export default function SettingsTab({
   clonedVoiceName, setClonedVoiceName,
   onStartRecording, onStopRecording, onVoiceUpload, onCloneVoice,
   activePlan = 'starter',
+  editedPrompt, setEditedPrompt, versions, isDeployingPrompt, onDeploy, onRestore,
 }: SettingsTabProps) {
 
   const models = platformModels.length > 0 ? platformModels : DEFAULT_MODELS;
@@ -516,6 +524,24 @@ export default function SettingsTab({
             </button>
           )}
         </div>
+      </div>
+
+      {/* Divider & Prompt Versions Section */}
+      <div className="lg:col-span-3 border-t border-border/60 pt-8 mt-4">
+        <div className="mb-6">
+          <h3 className=" text-foreground text-sm font-semibold">🗂️ Prompt Versions &amp; Backups</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Customize the system prompt template and restore older deployment backups.
+          </p>
+        </div>
+        <VersionsTab
+          editedPrompt={editedPrompt}
+          setEditedPrompt={setEditedPrompt}
+          versions={versions}
+          isDeployingPrompt={isDeployingPrompt}
+          onDeploy={onDeploy}
+          onRestore={onRestore}
+        />
       </div>
     </div>
   );

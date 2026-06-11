@@ -27,6 +27,7 @@ html {
   --input: #e4e4e7;
   --ring: #a1a1aa;
   --radius: 0.75rem;
+  --font-primary: var(--font-geist-sans), "Geist Placeholder", sans-serif;
 
   --glow-primary: rgba(0, 0, 0, 0.01);
   --glow-accent: rgba(59, 130, 246, 0.05);
@@ -101,8 +102,12 @@ html {
 }
 
 /* Base resets & theme transitions */
-body, input, button, select, textarea {
-  font-family: var(--font-geist-sans), "Geist Placeholder", sans-serif;
+body, input, button, select, textarea, h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-primary);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.02em;
 }
 
 body {

@@ -102,39 +102,46 @@ export default function LandingPricing({ isPricingPage = false }: PricingProps) 
   const [userId, setUserId] = useState<string | null>(null);
   const [currentPlan, setCurrentPlan] = useState<string>("starter");
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [isPlanLoading, setIsPlanLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserAndPlan = async () => {
-      const supabase = getClientSafe();
-      let activeUserId: string | null = null;
+      try {
+        const supabase = getClientSafe();
+        let activeUserId: string | null = null;
 
-      if (supabase) {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (session?.user) {
-          activeUserId = session.user.id;
-          setUserId(activeUserId);
+        if (supabase) {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+          if (session?.user) {
+            activeUserId = session.user.id;
+            setUserId(activeUserId);
+          }
+        } else {
+          const sandboxUser = localStorage.getItem("ringit_sandbox_user");
+          if (sandboxUser) {
+            const parsed = JSON.parse(sandboxUser);
+            activeUserId = parsed.id;
+            setUserId(activeUserId);
+          }
         }
-      } else {
-        const sandboxUser = localStorage.getItem("ringit_sandbox_user");
-        if (sandboxUser) {
-          const parsed = JSON.parse(sandboxUser);
-          activeUserId = parsed.id;
-          setUserId(activeUserId);
-        }
-      }
 
-      if (activeUserId && supabase) {
-        const { data } = await supabase
-          .from("subscriptions")
-          .select("plan, status")
-          .eq("user_id", activeUserId)
-          .maybeSingle();
+        if (activeUserId && supabase) {
+          const { data } = await supabase
+            .from("subscriptions")
+            .select("plan, status")
+            .eq("user_id", activeUserId)
+            .maybeSingle();
 
-        if (data) {
-          setCurrentPlan(data.plan || "starter");
+          if (data) {
+            setCurrentPlan(data.plan || "starter");
+          }
         }
+      } catch (err) {
+        console.error("Error fetching user and plan:", err);
+      } finally {
+        setIsPlanLoading(false);
       }
     };
 
@@ -188,7 +195,7 @@ export default function LandingPricing({ isPricingPage = false }: PricingProps) 
 
       if (data.url) {
         toast(`Redirecting to upgrade checkout...`, "info");
-        window.location.href = data.url;
+        window.location.assign(data.url);
       } else {
         throw new Error("No checkout URL received");
       }
@@ -257,124 +264,177 @@ export default function LandingPricing({ isPricingPage = false }: PricingProps) 
 
           {/* ── Cards Grid (Aceternity UI Premium Styling - Adapted to Light Theme / White Cards) ── */}
           <div className="mt-14 grid grid-cols-1 lg:grid-cols-3 gap-8 w-full max-w-5xl items-stretch">
-          {TIERS.map((tier) => {
-            const isCurrent = currentPlan === tier.key;
-            const price = isYearly ? tier.priceYearly : tier.priceMonthly;
-            const periodLabel = isYearly ? "/ year" : "/ month";
-            const costPerMonthEquivalent = isYearly
-              ? (tier.priceYearly / 12).toFixed(1)
-              : tier.priceMonthly;
-
-            // All cards are now premium white cards
-            const isPopular = tier.popular;
-
-            return (
+          {isPlanLoading ? (
+            // Premium Skeleton Loader for Pricing Cards
+            [...Array(3)].map((_, i) => (
               <div
-                key={tier.key}
-                className={`relative flex flex-col p-8 rounded-3xl border transition-all duration-300 bg-white text-foreground ${
-                  isPopular
-                    ? "border-2 border-foreground-blue shadow-lg scale-105 z-10"
-                    : "border-border/80 shadow-md hover:border-border hover:shadow-lg"
-                }`}
+                key={i}
+                className="relative flex flex-col p-8 rounded-3xl border border-border/60 bg-card/30 text-foreground justify-between min-h-[550px] animate-pulse"
               >
-                {isPopular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-foreground-blue text-white text-[9px] font-black tracking-widest px-4 py-1 rounded-full uppercase shadow-lg">
-                    Most Popular
-                  </span>
+                {i === 1 && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-foreground-blue/40 text-white text-[9px] font-black tracking-widest px-4 py-1 rounded-full uppercase shadow-lg h-5 w-24" />
                 )}
-
                 <div className="space-y-4">
-                  <h3 className="text-xl font-bold text-foreground">
-                    {tier.name}
-                  </h3>
-                  <p className="text-xs text-muted-foreground min-h-[32px]">
-                    {tier.desc}
-                  </p>
-
-                  <div className="flex items-baseline gap-1 mt-2">
-                    <span className="text-4xl font-extrabold tracking-tight text-foreground">${price}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {periodLabel}
-                    </span>
+                  <div className="h-6 w-24 bg-muted rounded-md" />
+                  <div className="space-y-2">
+                    <div className="h-3 w-full bg-muted rounded-md" />
+                    <div className="h-3 w-2/3 bg-muted rounded-md" />
                   </div>
-                  {isYearly && (
-                    <span className="text-[10px] text-foreground-blue font-bold block">
-                      Equivalent to ${costPerMonthEquivalent}/mo (billed annually)
-                    </span>
-                  )}
+                  <div className="flex items-baseline gap-1 mt-4">
+                    <div className="h-9 w-20 bg-muted rounded-md" />
+                    <div className="h-3 w-10 bg-muted rounded-md" />
+                  </div>
                 </div>
 
-                {/* CTA Button */}
-                <button
-                  type="button"
-                  disabled={isLoading !== null}
-                  onClick={() => handleUpgrade(tier.key)}
-                  className={`mt-8 w-full py-3 rounded-xl text-xs font-bold shadow-md transition-all active:scale-[0.98] cursor-pointer ${
-                    isCurrent
-                      ? "bg-secondary text-secondary-foreground cursor-default opacity-80"
-                      : isPopular
-                      ? "bg-foreground-blue text-white hover:bg-foreground-blue/90"
-                      : "bg-foreground text-background hover:bg-foreground/90"
-                  }`}
-                >
-                  {isLoading === tier.key
-                    ? "Processing..."
-                    : isCurrent
-                    ? "Active Subscription"
-                    : tier.cta}
-                </button>
+                <div className="h-10 w-full bg-muted rounded-xl mt-8" />
 
-                {/* Divider */}
-                <hr className="my-6 border-t border-dashed border-border" />
+                <hr className="my-6 border-t border-dashed border-border/80" />
 
-                {/* Limits / Quotas */}
                 <div className="space-y-3.5">
-                  <p className="text-[10px] font-extrabold tracking-wider uppercase text-muted-foreground">
-                    {tier.name} plan includes
-                  </p>
+                  <div className="h-3 w-24 bg-muted rounded-md" />
                   <ul className="space-y-2.5">
-                    {tier.limits.map((limit, idx) => (
-                      <li key={idx} className="flex items-center gap-2.5 text-xs font-semibold text-foreground">
-                        <span className="text-xs shrink-0 text-foreground-blue">
-                          ⚡
-                        </span>
-                        <span>{limit}</span>
+                    {[...Array(3)].map((_, idx) => (
+                      <li key={idx} className="flex items-center gap-2.5">
+                        <div className="w-4 h-4 bg-muted rounded-full shrink-0" />
+                        <div className="h-3 w-5/6 bg-muted rounded-md" />
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                {/* Features list */}
                 <div className="mt-6 space-y-3 flex-1">
-                  <p className="text-[10px] font-extrabold tracking-wider uppercase text-muted-foreground">
-                    Features
-                  </p>
+                  <div className="h-3 w-20 bg-muted rounded-md" />
                   <ul className="space-y-2.5">
-                    {tier.features.map((feat, idx) => (
-                      <li key={idx} className="flex items-center justify-between text-xs font-medium">
-                        <span
-                          className={
-                            feat.checked
-                              ? "text-foreground"
-                              : "text-muted-foreground/50 line-through"
-                          }
-                        >
-                          {feat.label}
-                        </span>
-                        <span className="shrink-0 text-sm">
-                          {feat.checked ? (
-                            <span className="text-foreground-blue font-bold">✓</span>
-                          ) : (
-                            <span className="text-muted-foreground/30">🔒</span>
-                          )}
-                        </span>
+                    {[...Array(4)].map((_, idx) => (
+                      <li key={idx} className="flex items-center justify-between">
+                        <div className="h-3 w-1/2 bg-muted rounded-md" />
+                        <div className="w-4 h-4 bg-muted rounded-full shrink-0" />
                       </li>
                     ))}
                   </ul>
                 </div>
               </div>
-            );
-          })}
+            ))
+          ) : (
+            TIERS.map((tier) => {
+              const isCurrent = currentPlan === tier.key;
+              const price = isYearly ? tier.priceYearly : tier.priceMonthly;
+              const periodLabel = isYearly ? "/ year" : "/ month";
+              const costPerMonthEquivalent = isYearly
+                ? (tier.priceYearly / 12).toFixed(1)
+                : tier.priceMonthly;
+
+              // All cards are now premium white cards
+              const isPopular = tier.popular;
+
+              return (
+                <div
+                  key={tier.key}
+                  className={`relative flex flex-col p-8 rounded-3xl border transition-all duration-300 bg-white text-foreground ${
+                    isPopular
+                      ? "border-2 border-foreground-blue shadow-lg scale-105 z-10"
+                      : "border-border/80 shadow-md hover:border-border hover:shadow-lg"
+                  }`}
+                >
+                  {isPopular && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-foreground-blue text-white text-[9px] font-black tracking-widest px-4 py-1 rounded-full uppercase shadow-lg">
+                      Most Popular
+                    </span>
+                  )}
+
+                  <div className="space-y-4">
+                    <h3 className="text-xl font-bold text-foreground">
+                      {tier.name}
+                    </h3>
+                    <p className="text-xs text-muted-foreground min-h-[32px]">
+                      {tier.desc}
+                    </p>
+
+                    <div className="flex items-baseline gap-1 mt-2">
+                      <span className="text-4xl font-extrabold tracking-tight text-foreground">${price}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {periodLabel}
+                      </span>
+                    </div>
+                    {isYearly && (
+                      <span className="text-[10px] text-foreground-blue font-bold block">
+                        Equivalent to ${costPerMonthEquivalent}/mo (billed annually)
+                      </span>
+                    )}
+                  </div>
+
+                  {/* CTA Button */}
+                  <button
+                    type="button"
+                    disabled={isLoading !== null}
+                    onClick={() => handleUpgrade(tier.key)}
+                    className={`mt-8 w-full py-3 rounded-xl text-xs font-bold shadow-md transition-all active:scale-[0.98] cursor-pointer ${
+                      isCurrent
+                        ? "bg-secondary text-secondary-foreground cursor-default opacity-80"
+                        : isPopular
+                        ? "bg-foreground-blue text-white hover:bg-foreground-blue/90"
+                        : "bg-foreground text-background hover:bg-foreground/90"
+                    }`}
+                  >
+                    {isLoading === tier.key
+                      ? "Processing..."
+                      : isCurrent
+                      ? "Active Subscription"
+                      : tier.cta}
+                  </button>
+
+                  {/* Divider */}
+                  <hr className="my-6 border-t border-dashed border-border" />
+
+                  {/* Limits / Quotas */}
+                  <div className="space-y-3.5">
+                    <p className="text-[10px] font-extrabold tracking-wider uppercase text-muted-foreground">
+                      {tier.name} plan includes
+                    </p>
+                    <ul className="space-y-2.5">
+                      {tier.limits.map((limit, idx) => (
+                        <li key={idx} className="flex items-center gap-2.5 text-xs font-semibold text-foreground">
+                          <span className="text-xs shrink-0 text-foreground-blue">
+                            ⚡
+                          </span>
+                          <span>{limit}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Features list */}
+                  <div className="mt-6 space-y-3 flex-1">
+                    <p className="text-[10px] font-extrabold tracking-wider uppercase text-muted-foreground">
+                      Features
+                    </p>
+                    <ul className="space-y-2.5">
+                      {tier.features.map((feat, idx) => (
+                        <li key={idx} className="flex items-center justify-between text-xs font-medium">
+                          <span
+                            className={
+                              feat.checked
+                                ? "text-foreground"
+                                : "text-muted-foreground/50 line-through"
+                            }
+                          >
+                            {feat.label}
+                          </span>
+                          <span className="shrink-0 text-sm">
+                            {feat.checked ? (
+                              <span className="text-foreground-blue font-bold">✓</span>
+                            ) : (
+                              <span className="text-muted-foreground/30">🔒</span>
+                            )}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </div>

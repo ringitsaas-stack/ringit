@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { getSupabaseClient } from "@/shared/lib/supabase-client";
 import LandingHeader from "@/components/landing/Header";
 import LandingHero from "@/components/landing/Hero";

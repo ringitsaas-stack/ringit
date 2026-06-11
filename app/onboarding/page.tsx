@@ -36,6 +36,87 @@ interface WizardForm {
   customIndustry: string;
 }
 
+const ONBOARDING_VERTICALS = [
+  {
+    icon: "🔧",
+    id: "Auto Repair",
+    title: "Auto Repair",
+    desc: "Books service, gives ballpark quotes, schedules pickup.",
+  },
+  {
+    icon: "🎨",
+    id: "Design Studios",
+    title: "Design Studios",
+    desc: "Qualifies projects, quotes ranges, books project calls.",
+  },
+  {
+    icon: "💪",
+    id: "Gyms & Fitness",
+    title: "Gyms & Fitness",
+    desc: "Books tours, handles class signups, answers membership questions.",
+  },
+  {
+    icon: "⚕️",
+    id: "Healthcare",
+    title: "Healthcare",
+    desc: "Triages appointments, handles urgent calls, answers insurance questions.",
+  },
+  {
+    icon: "⚖️",
+    id: "Law Firms",
+    title: "Law Firms",
+    desc: "Routes case types, takes intake info, books consultations.",
+  },
+  {
+    icon: "📢",
+    id: "Marketing Agencies",
+    title: "Marketing Agencies",
+    desc: "Qualifies leads, books discovery calls, quotes ranges.",
+  },
+  {
+    icon: "📷",
+    id: "Photography",
+    title: "Photography",
+    desc: "Books shoots, quotes packages, captures wedding inquiries.",
+  },
+  {
+    icon: "🏠",
+    id: "Real Estate",
+    title: "Real Estate",
+    desc: "Schedules showings, answers listing questions, captures buyer leads.",
+  },
+  {
+    icon: "🍳",
+    id: "Restaurants",
+    title: "Restaurants",
+    desc: "Takes reservations, answers menu questions, handles takeout.",
+  },
+  {
+    icon: "💇",
+    id: "Salons",
+    title: "Salons",
+    desc: "Books appointments, lists services, handles reschedules.",
+  },
+  {
+    icon: "🐾",
+    id: "Veterinary",
+    title: "Veterinary",
+    desc: "Books visits, handles urgent calls, answers vaccination questions.",
+  },
+  {
+    icon: "🧘",
+    id: "Yoga",
+    title: "Yoga",
+    desc: "Books classes, manages memberships, handles drop-ins.",
+  },
+  {
+    icon: "✨",
+    id: "Other",
+    title: "Custom Category",
+    desc: "Describe your own custom business category.",
+  },
+];
+
 export default function OnboardingPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -53,7 +134,7 @@ export default function OnboardingPage() {
 
   const [wizardForm, setWizardForm] = useState<WizardForm>({
     businessName: '',
-    industry: 'Dental',
+    industry: 'Auto Repair',
     tone: 'Warm and friendly',
     services: '',
     leadEmail: '',
@@ -281,28 +362,28 @@ export default function OnboardingPage() {
                 <p className="text-muted-foreground text-xs mt-1">This templates the primary prompt baseline mapped to Retell AI.</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {['Dental', 'HVAC', 'Legal', 'Salon', 'Other'].map((ind) => (
+              <div className="grid grid-cols-2 gap-4 max-h-[380px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+                {ONBOARDING_VERTICALS.map((vert) => (
                   <button
-                    key={ind}
+                    key={vert.id}
                     type="button"
-                    onClick={() => setWizardForm({ ...wizardForm, industry: ind })}
-                    className={`p-6 rounded-xl border text-left transition-all space-y-2 ${
-                      wizardForm.industry === ind
-                        ? 'border-primary bg-secondary'
+                    onClick={() => setWizardForm({ ...wizardForm, industry: vert.id })}
+                    className={`p-4 rounded-xl border text-left transition-all space-y-2 flex flex-col justify-between min-h-[110px] ${
+                      wizardForm.industry === vert.id
+                        ? 'border-primary bg-secondary/40 shadow-sm'
                         : 'border-border bg-transparent hover:border-zinc-500'
                     }`}
                   >
-                    <div className="text-2xl">
-                      {ind === 'Dental' ? '🦷' : ind === 'HVAC' ? '❄️' : ind === 'Legal' ? '⚖️' : ind === 'Salon' ? '💇' : '✨'}
+                    <div className="space-y-1">
+                      <div className="text-2xl">
+                        {vert.icon}
+                      </div>
+                      <div className="font-bold text-foreground text-sm">
+                        {vert.title}
+                      </div>
                     </div>
-                    <div className=" text-foreground text-sm">
-                      {ind === 'Other' ? 'Custom Category' : `${ind} Clinic`}
-                    </div>
-                    <div className="text-[11px] text-muted-foreground leading-tight">
-                      {ind === 'Other' 
-                        ? 'Describe your own custom business category.' 
-                        : 'Apply pre-configured industry template structures.'}
+                    <div className="text-[11px] text-muted-foreground leading-snug">
+                      {vert.desc}
                     </div>
                   </button>
                 ))}
@@ -335,9 +416,9 @@ export default function OnboardingPage() {
                     }
                     setWizardStep(2);
                   }}
-                  className="bg-primary text-primary-foreground font-semibold text-sm px-6 py-2.5 rounded-lg hover:opacity-90 transition-all"
+                  className="bg-foreground-blue text-white font-semibold text-sm px-6 py-2.5 rounded-lg hover:bg-foreground-blue/90 transition-all shadow-md cursor-pointer"
                 >
-                  Next: Business Details
+                  Next
                 </button>
               </div>
             </div>
@@ -402,7 +483,7 @@ export default function OnboardingPage() {
                       type="button"
                       onClick={() => setWizardForm({ ...wizardForm, useExistingNumber: !wizardForm.useExistingNumber })}
                       className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        wizardForm.useExistingNumber ? 'bg-primary' : 'bg-zinc-700'
+                        wizardForm.useExistingNumber ? 'bg-foreground-blue' : 'bg-zinc-700'
                       }`}
                     >
                       <span
@@ -456,15 +537,15 @@ export default function OnboardingPage() {
               <div className="flex justify-between pt-4">
                 <button
                   onClick={() => setWizardStep(1)}
-                  className="border border-border text-muted-foreground font-semibold text-sm px-6 py-2 rounded-lg hover:text-foreground hover:bg-card"
+                  className="border border-border text-muted-foreground font-semibold text-sm px-6 py-2 rounded-lg hover:text-foreground hover:bg-card cursor-pointer"
                 >
                   Back
                 </button>
                 <button
                   onClick={validateStep2}
-                  className="bg-primary text-primary-foreground font-semibold text-sm px-6 py-2.5 rounded-lg hover:opacity-90 transition-all"
+                  className="bg-foreground-blue text-white font-semibold text-sm px-6 py-2.5 rounded-lg hover:bg-foreground-blue/90 transition-all shadow-md cursor-pointer"
                 >
-                  Next: Personality Settings
+                  Next
                 </button>
               </div>
             </div>
@@ -517,12 +598,12 @@ export default function OnboardingPage() {
                             }}
                             className={`w-full text-left px-3 py-2 text-xs rounded-lg transition-colors flex items-center justify-between ${
                               wizardForm.tone === t
-                                ? 'bg-emerald-500/10 text-emerald-500 font-semibold'
+                                ? 'bg-foreground-blue/10 text-foreground-blue font-semibold'
                                 : 'text-foreground hover:bg-secondary/60'
                             }`}
                           >
                             <span>{t}</span>
-                            {wizardForm.tone === t && <span className="text-[10px]">✓</span>}
+                            {wizardForm.tone === t && <span className="text-[10px] text-foreground-blue">✓</span>}
                           </button>
                         ))}
                       </div>
@@ -535,13 +616,13 @@ export default function OnboardingPage() {
                 <button
                   type="button"
                   onClick={() => setWizardStep(2)}
-                  className="border border-border text-muted-foreground font-semibold text-sm px-6 py-2 rounded-lg hover:text-foreground hover:bg-card"
+                  className="border border-border text-muted-foreground font-semibold text-sm px-6 py-2 rounded-lg hover:text-foreground hover:bg-card cursor-pointer"
                 >
                   Back
                 </button>
                 <button
                   type="submit"
-                  className="bg-emerald-500 text-white font-semibold text-sm px-6 py-2.5 rounded-lg hover:bg-emerald-400 transition-all shadow-lg border border-emerald-600/10"
+                  className="bg-foreground-blue text-white font-semibold text-sm px-6 py-2.5 rounded-lg hover:bg-foreground-blue/90 transition-all shadow-lg border border-foreground-blue/10 cursor-pointer"
                 >
                   Build & Launch AI Agent
                 </button>
@@ -553,30 +634,30 @@ export default function OnboardingPage() {
             <div className="glass-panel p-10 rounded-2xl flex flex-col items-center justify-center text-center space-y-6 min-h-[350px]">
               {isProvisioning ? (
                 <>
-                  <div className="w-12 h-12 rounded-full border-4 border-zinc-800 border-t-white animate-spin"></div>
+                  <div className="w-12 h-12 rounded-full border-4 border-zinc-200 border-t-foreground-blue animate-spin"></div>
                   <div className="space-y-2">
-                    <h3 className="text-lg  text-foreground">Provisioning AI Infrastructure</h3>
+                    <h3 className="text-lg text-foreground">Provisioning AI Infrastructure</h3>
                     <p className="text-muted-foreground text-xs animate-pulse max-w-sm">{provisioningStatus}</p>
                   </div>
                 </>
               ) : (
                 <>
-                  <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500 flex items-center justify-center text-3xl shadow-lg animate-bounce">
+                  <div className="w-16 h-16 rounded-full bg-foreground-blue/10 border border-foreground-blue/30 flex items-center justify-center text-3xl shadow-lg animate-bounce">
                     🎉
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-2xl  text-foreground">Your AI Receptionist is Ready!</h3>
+                    <h3 className="text-2xl text-foreground">Your AI Receptionist is Ready!</h3>
                     <p className="text-muted-foreground text-xs max-w-sm">We successfully bought a Twilio number and registered the Retell agent.</p>
                   </div>
 
                   <div className="bg-card border border-border p-4 rounded-xl max-w-xs w-full">
-                    <div className="text-[10px]  text-muted-foreground">Live Phone Number</div>
-                    <div className="text-xl  text-emerald-500 mt-1">{newlyCreatedPhone}</div>
+                    <div className="text-[10px] text-muted-foreground">Live Phone Number</div>
+                    <div className="text-xl text-foreground-blue mt-1 font-bold">{newlyCreatedPhone}</div>
                   </div>
 
                   <button
                     onClick={() => handlePlanSelection('pro')}
-                    className="bg-primary text-primary-foreground font-semibold text-sm px-6 py-2.5 rounded-lg hover:opacity-90 transition-all"
+                    className="bg-foreground-blue text-white font-semibold text-sm px-6 py-2.5 rounded-lg hover:bg-foreground-blue/90 transition-all shadow-md cursor-pointer"
                   >
                     Continue to Dashboard ⚡
                   </button>

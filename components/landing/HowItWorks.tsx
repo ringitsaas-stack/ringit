@@ -25,7 +25,7 @@ const STEPS_DATA: Step[] = [
     badge: "Setup",
     title: "Pick your industry.",
     desc: "Each template is tuned for the vocabulary, pricing language, and escalation patterns that vertical needs. The agent inherits all of it on minute one.",
-    image: "/how_1.png",
+    image: "/How_1.png",
     layoutType: "grid",
     points: [
       {

@@ -17,7 +17,7 @@ interface UserSession {
   fullName: string;
 }
 
-type DashboardTab = 'overview' | 'calls' | 'leads' | 'versions' | 'settings';
+type DashboardTab = 'dashboard' | 'agents' | 'pricing' | 'settings';
 
 interface DashboardSidebarProps {
   agents: Agent[];
@@ -46,11 +46,10 @@ interface DashboardSidebarProps {
 }
 
 const NAV_ITEMS: { id: DashboardTab; label: string; icon: string }[] = [
-  { id: 'overview', label: 'Overview', icon: '📊' },
-  { id: 'calls', label: 'Call Logs', icon: '📞' },
-  { id: 'leads', label: 'Leads Captured', icon: '👤' },
-  { id: 'versions', label: 'Prompt Versions', icon: '🗂️' },
-  { id: 'settings', label: 'Settings & Studio', icon: '⚙️' },
+  { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+  { id: 'agents', label: 'Agents & Logs', icon: '📞' },
+  { id: 'pricing', label: 'Pricing Plan', icon: '💳' },
+  { id: 'settings', label: 'Settings', icon: '⚙️' },
 ];
 
 export default function DashboardSidebar({
@@ -84,20 +83,20 @@ export default function DashboardSidebar({
             R
           </div>
           <span className="font-semibold text-lg text-foreground">
-            Ringit<span className="text-emerald-500 ">.ai</span>
+            Ringit<span className="text-foreground-blue">.ai</span>
           </span>
         </div>
 
         {/* Agent Switcher */}
         <div className="flex flex-col gap-2 relative">
-          <span className="text-[10px]  text-muted-foreground uppercase tracking-wider">
+          <span className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
             Active Receptionist
           </span>
           <div className="relative">
             <button
               type="button"
               onClick={() => setIsAgentDropdownOpen(!isAgentDropdownOpen)}
-              className="w-full flex items-center justify-between gap-2 bg-card/65 border border-border rounded-xl py-2 px-3 text-xs text-foreground hover:border-zinc-400 focus:outline-none transition-colors"
+              className="w-full flex items-center justify-between gap-2 bg-card/65 border border-border rounded-xl py-2.5 px-3 text-sm text-foreground hover:border-zinc-400 focus:outline-none transition-colors"
             >
               <span className="truncate">
                 {currentAgent
@@ -133,9 +132,9 @@ export default function DashboardSidebar({
                         setSelectedAgentId(a.id);
                         setIsAgentDropdownOpen(false);
                       }}
-                      className={`w-full text-left px-3 py-2 text-xs rounded-lg transition-colors flex items-center justify-between ${
+                      className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors flex items-center justify-between ${
                         selectedAgentId === a.id
-                          ? 'bg-emerald-500/10 text-emerald-500 font-semibold'
+                          ? 'bg-foreground-blue/10 text-foreground-blue font-semibold'
                           : 'text-foreground hover:bg-secondary/60'
                       }`}
                     >
@@ -143,7 +142,7 @@ export default function DashboardSidebar({
                         {a.businessName} ({a.industry})
                       </span>
                       {selectedAgentId === a.id && (
-                        <span className="text-[10px]">✓</span>
+                        <span className="text-xs">✓</span>
                       )}
                     </button>
                   ))}
@@ -154,7 +153,7 @@ export default function DashboardSidebar({
                         setIsAgentDropdownOpen(false);
                         router.push('/onboarding');
                       }}
-                      className="w-full text-left px-3 py-2 text-xs rounded-lg text-emerald-500  hover:bg-emerald-500/5 transition-all flex items-center gap-1"
+                      className="w-full text-left px-3 py-2 text-sm rounded-lg text-foreground-blue hover:bg-foreground-blue/5 transition-all flex items-center gap-1 font-semibold"
                     >
                       <span>＋</span> Add Receptionist
                     </button>
@@ -171,7 +170,7 @@ export default function DashboardSidebar({
             <button
               key={item.id}
               onClick={() => setDashboardTab(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                 dashboardTab === item.id
                   ? 'bg-primary text-primary-foreground shadow-md shadow-primary/10'
                   : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
@@ -185,31 +184,31 @@ export default function DashboardSidebar({
 
         {/* Quota Usage Gauge */}
         <div className="glass-panel p-4 rounded-xl border border-border/50 bg-secondary/20 space-y-2.5">
-          <div className="flex justify-between items-center text-[10px]  text-muted-foreground uppercase tracking-wide">
+          <div className="flex justify-between items-center text-xs text-muted-foreground uppercase tracking-wide font-bold">
             <span>Call Quota</span>
             <span className="text-foreground">{usagePercentage.toFixed(0)}%</span>
           </div>
           <div className="w-full bg-border rounded-full h-1.5 overflow-hidden">
             <div 
-              className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500" 
+              className="bg-foreground-blue h-1.5 rounded-full transition-all duration-500" 
               style={{ width: `${minutesUsed > 0 ? Math.max(usagePercentage, 2) : 0}%` }}
             />
           </div>
-          <div className="flex justify-between items-center text-[10px] text-muted-foreground">
+          <div className="flex justify-between items-center text-xs text-muted-foreground font-semibold">
             <span>{minutesUsed.toFixed(1)} mins used</span>
             <span>{maxMinutes}m limit</span>
           </div>
-          <div className="text-[9px] text-muted-foreground/80 border-t border-border/25 pt-2 flex justify-between">
-            <span>Lifetime call usage:</span>
-            <span className=" text-foreground">{(billingInfo?.usage?.lifetime_minutes ?? 0).toFixed(1)}m</span>
+          <div className="text-xs text-muted-foreground/80 border-t border-border/25 pt-2 flex justify-between font-medium">
+            <span>Lifetime usage:</span>
+            <span className=" text-foreground font-semibold">{(billingInfo?.usage?.lifetime_minutes ?? 0).toFixed(1)}m</span>
           </div>
           {activePlan !== 'agency' && (
-            <Link 
-              href="/pricing" 
-              className="text-[9px] font-black text-emerald-400 hover:text-emerald-300 block text-center pt-1 tracking-wider uppercase"
+            <button
+              onClick={() => setDashboardTab('pricing')}
+              className="w-full text-left text-xs font-black text-foreground-blue hover:underline block text-center pt-1 tracking-wider uppercase"
             >
               Upgrade for higher limits 🚀
-            </Link>
+            </button>
           )}
         </div>
       </div>
@@ -217,24 +216,23 @@ export default function DashboardSidebar({
       {/* Bottom Panel */}
       <div className="border-t border-border pt-4 space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center  text-xs text-foreground border border-border shadow-sm shrink-0">
+          <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center  text-xs text-foreground border border-border shadow-sm shrink-0 font-bold">
             {user?.fullName.charAt(0) || 'U'}
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-xs  text-foreground truncate">
+            <span className="text-sm text-foreground truncate font-semibold">
               {user?.fullName}
             </span>
-            <span className="text-[9px] text-emerald-500  uppercase tracking-wider">
+            <span className="text-xs text-foreground-blue uppercase tracking-wider font-bold">
               {planLabel}
             </span>
           </div>
         </div>
 
         <div className="flex gap-2">
-        
           <button
             onClick={onSignOut}
-            className="flex-1 text-center  text-[10px] uppercase text-muted-foreground hover:text-foreground bg-secondary/60 hover:bg-secondary px-3 py-2 rounded-lg transition-all border border-border tracking-wider"
+            className="w-full text-center text-xs uppercase text-muted-foreground hover:text-foreground bg-secondary/60 hover:bg-secondary px-3 py-2.5 rounded-lg transition-all border border-border tracking-wider font-bold"
           >
             Sign Out ⚡
           </button>
