@@ -1,0 +1,816 @@
+# RINGIT - FINAL TECHNICAL ARCHITECTURE (V1)
+
+## Project Goal
+
+Ringit is a multi-tenant AI Receptionist SaaS platform.
+
+Businesses can:
+
+* Sign up
+* Create AI receptionists
+* Get phone numbers
+* Receive calls
+* Capture leads
+* View analytics
+* Manage subscriptions
+
+The platform must support multiple AI providers.
+
+Initial provider:
+
+* Retell AI (Preferred)
+
+# Final Technology Stack
+
+## Frontend
+
+* Next.js 15 App Router
+* TypeScript
+* Tailwind CSS
+* Shadcn UI
+
+---
+
+## Backend
+
+* Next.js Route Handlers
+* Service Layer Pattern
+* Repository Pattern
+
+---
+
+## Database
+
+* Supabase PostgreSQL
+
+Responsibilities:
+
+* Authentication
+* Database
+* Row Level Security
+* Storage
+
+---
+
+## Validation
+
+* Zod
+
+---
+
+## Forms
+
+* React Hook Form
+
+---
+
+## State Management
+
+* TanStack Query
+
+---
+
+## Telephony
+
+* Twilio
+
+Responsibilities:
+
+* Phone Number Purchase
+* Call Routing
+
+---
+
+## Voice Provider
+
+Primary:
+
+* Retell AI
+
+---
+
+## Payments
+
+* Stripe
+
+---
+
+# Architecture Rules
+
+Follow:
+
+* SOLID Principles
+* DRY
+* KISS
+* Feature Based Architecture
+
+Never place business logic inside React components.
+
+Never place database queries inside UI.
+
+Never call Retell APIs directly from React components.
+
+---
+
+# Multi Tenant Architecture
+
+One Ringit Platform
+
+Many Customers
+
+Example:
+
+User A
+└── Dental Assistant
+
+User B
+└── HVAC Assistant
+
+User C
+├── Real Estate Assistant
+└── Legal Assistant
+
+Each user sees only their data.
+
+Use Supabase RLS.
+
+---
+
+# Authentication Flow
+
+User Signup
+
+↓
+
+Supabase Auth
+
+↓
+
+Create User Profile
+
+↓
+
+Dashboard
+
+Tables:
+
+profiles
+
+id
+email
+full_name
+created_at
+
+---
+
+# Database Schema
+
+## profiles
+
+id UUID PK
+
+email TEXT
+
+full_name TEXT
+
+created_at TIMESTAMP
+
+updated_at TIMESTAMP
+
+---
+
+## agents
+
+id UUID PK
+
+user_id UUID FK
+
+provider TEXT
+
+provider_agent_id TEXT
+
+business_name TEXT
+
+industry TEXT
+
+services TEXT
+
+tone TEXT
+
+lead_email TEXT
+
+phone_number TEXT
+
+phone_sid TEXT
+
+current_prompt TEXT
+
+status TEXT
+
+created_at TIMESTAMP
+
+updated_at TIMESTAMP
+
+---
+
+## calls
+
+id UUID PK
+
+agent_id UUID FK
+
+provider_call_id TEXT
+
+caller_phone TEXT
+
+duration_seconds INTEGER
+
+summary TEXT
+
+transcript TEXT
+
+created_at TIMESTAMP
+
+---
+
+## leads
+
+id UUID PK
+
+agent_id UUID FK
+
+name TEXT
+
+phone TEXT
+
+intent TEXT
+
+summary TEXT
+
+status TEXT
+
+created_at TIMESTAMP
+
+---
+
+## subscriptions
+
+id UUID PK
+
+user_id UUID FK
+
+stripe_customer_id TEXT
+
+stripe_subscription_id TEXT
+
+plan TEXT
+
+status TEXT
+
+created_at TIMESTAMP
+
+---
+
+## webhook_events
+
+id UUID PK
+
+event_type TEXT
+
+payload JSONB
+
+processed BOOLEAN
+
+created_at TIMESTAMP
+
+---
+
+# Row Level Security
+
+Users can only access:
+
+their agents
+
+their calls
+
+their leads
+
+their subscription
+
+Example:
+
+auth.uid() = user_id
+
+Enable RLS on all tables.
+
+---
+
+# Folder Structure
+
+src/
+
+app/
+
+api/
+
+dashboard/
+
+agents/
+
+billing/
+
+settings/
+
+features/
+
+auth/
+
+agents/
+
+calls/
+
+leads/
+
+billing/
+
+shared/
+
+components/
+
+hooks/
+
+lib/
+
+services/
+
+repositories/
+
+providers/
+
+retell/
+
+vapi/
+
+twilio/
+
+stripe/
+
+supabase/
+
+types/
+
+config/
+
+---
+
+# Provider Architecture
+
+Create Interface
+
+VoiceProvider
+
+Methods
+
+createAssistant()
+
+updateAssistant()
+
+deleteAssistant()
+
+startCall()
+
+getCall()
+
+listCalls()
+
+Provider Implementations
+
+RetellProvider
+
+VapiProvider
+
+Future:
+
+SmallestProvider
+
+Business logic only talks to VoiceProvider.
+
+Never directly to Retell.
+
+---
+
+# Assistant Creation Flow
+
+Step 1
+
+User fills onboarding.
+
+Industry
+
+Business Name
+
+Services
+
+Tone
+
+Lead Email
+
+Area Code
+
+---
+
+Step 2
+
+POST
+
+/api/agents/create
+
+---
+
+Step 3
+
+Backend validates using Zod.
+
+---
+
+Step 4
+
+Generate Prompt
+
+Template Based
+
+Industry Template
+
+*
+
+Business Information
+
+---
+
+Step 5
+
+Create Assistant
+
+VoiceProvider.createAssistant()
+
+---
+
+Step 6
+
+Buy Phone Number
+
+Twilio
+
+---
+
+Step 7
+
+Assign Number To Assistant
+
+---
+
+Step 8
+
+Save Agent
+
+Supabase
+
+---
+
+Step 9
+
+Return Success
+
+Phone Number
+
+Agent ID
+
+---
+
+# Call Flow
+
+Caller
+
+↓
+
+Twilio
+
+↓
+
+Retell/Vapi
+
+↓
+
+AI Conversation
+
+↓
+
+Webhook
+
+↓
+
+Ringit
+
+↓
+
+Store Call
+
+↓
+
+Extract Lead
+
+↓
+
+Save Lead
+
+↓
+
+Dashboard Update
+
+---
+
+# Lead Extraction Flow
+
+Call Ends
+
+↓
+
+Transcript Received
+
+↓
+
+AI Extraction
+
+↓
+
+Name
+
+Phone
+
+Intent
+
+Summary
+
+↓
+
+Store Lead
+
+---
+
+# Dashboard
+
+Statistics
+
+Total Calls
+
+Total Leads
+
+Average Duration
+
+Conversion Rate
+
+Recent Calls
+
+Recent Leads
+
+Filters
+
+Date
+
+Agent
+
+Status
+
+---
+
+# API Structure
+
+POST
+
+/api/agents/create
+
+PATCH
+
+/api/agents/
+
+DELETE
+
+/api/agents/
+
+GET
+
+/api/agents
+
+GET
+
+/api/calls
+
+GET
+
+/api/leads
+
+POST
+
+/api/webhooks/provider
+
+POST
+
+/api/webhooks/stripe
+
+POST
+
+/api/test-call
+
+---
+
+# Stripe Plans
+
+Starter
+
+1 Assistant
+
+Basic Dashboard
+
+Pro
+
+3 Assistants
+
+Advanced Analytics
+
+Agency
+
+10 Assistants
+
+Multiple Businesses
+
+---
+
+# Design System
+
+Reference:
+
+Linear
+
+Stripe
+
+Vercel
+
+Resend
+
+Use:
+
+Clean Layouts
+
+Large White Space
+
+Minimal Borders
+
+Soft Shadows
+
+Rounded Corners
+
+Modern SaaS Style
+
+---
+
+# Component Rules
+
+Reusable Components Only
+
+No Duplicate UI
+
+No Business Logic Inside Components
+
+Maximum Component Size
+
+300 Lines
+
+Extract Hooks
+
+Extract Services
+
+Extract Utilities
+
+---
+
+# Quality Rules
+
+TypeScript Strict Mode
+
+No Any
+
+ESLint
+
+Prettier
+
+Husky
+
+Lint Staged
+
+Zod Validation
+
+Error Boundaries
+
+Loading States
+
+Empty States
+
+Error States
+
+---
+
+# Development Phases
+
+Phase 1
+
+Project Setup
+
+Supabase
+
+Database
+
+Authentication
+
+---
+
+Phase 2
+
+Dashboard Layout
+
+Navigation
+
+Design System
+
+---
+
+Phase 3
+
+Assistant Creation
+
+Prompt Templates
+
+Provider Layer
+
+---
+
+Phase 4
+
+Twilio Integration
+
+Phone Numbers
+
+---
+
+Phase 5
+
+Webhooks
+
+Calls
+
+Leads
+
+---
+
+Phase 6
+
+Dashboard Analytics
+
+---
+
+Phase 7
+
+Stripe Billing
+
+---
+
+Phase 8
+
+Production Deployment
+
+Monitoring
+
+Testing
+
+Launch
+
+---
+
+# MVP Launch Criteria
+
+User can:
+
+Sign Up
+
+Create Assistant
+
+Receive Phone Number
+
+Receive Calls
+
+Capture Leads
+
+View Dashboard
+
+Manage Subscription
+
+Without Manual Intervention

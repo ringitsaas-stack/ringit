@@ -1,0 +1,1038 @@
+# Ringit — Technical Build Brief (Alternative Stack)
+## AI Voice Receptionist SaaS using Vapi or Retell AI
+**Version 1.0 — Using Vapi/Retell instead of Smallest AI Atoms**
+
+---
+
+## IMPORTANT DECISION: Vapi vs Retell AI
+
+Before you build, understand the difference:
+
+| Feature | Vapi | Retell AI |
+|---------|------|-----------|
+| **Setup complexity** | Easier, more polished UI | Slightly more technical |
+| **Phone numbers** | Built-in (Twilio integration) | You manage Twilio separately |
+| **Prompt generation** | You write or use Claude | You write prompts |
+| **Voice quality** | Good, multiple voices | Excellent, very natural |
+| **Customization** | Limited but intuitive | More flexible |
+| **Webhooks** | ✅ Yes | ✅ Yes |
+| **Cost** | $0.25-0.75/min approx | $0.10-0.30/min approx |
+| **Best for** | Non-technical founders | Developers who want control |
+| **API Maturity** | Well-documented | Well-documented |
+
+**Recommendation for Ringit MVP:** **Vapi** — easier setup, faster to launch. Retell if you want more customization or cost optimization.
+
+This document covers **Vapi** as primary. Retell can be swapped in (nearly identical architecture).
+
+---
+
+## PART 0 — Understanding Vapi
+
+### What is Vapi?
+
+Vapi is a platform that handles voice AI conversations. Think of it like a "hosted voice receptionist service."
+
+You give Vapi:
+1. A phone number (via Twilio)
+2. A prompt (the agent's personality)
+3. A webhook URL (to get call events)
+
+Vapi handles:
+- Speech-to-text (understands caller)
+- LLM inference (decides what to say)
+- Text-to-speech (speaks the response)
+- Call routing (when someone calls the number)
+- Call logs and transcripts
+- Webhooks back to your server
+
+### Key Difference from Atoms
+
+- **Atoms:** Smallest AI owns everything, you manage multi-tenant complexity
+- **Vapi:** You manage the prompt, Vapi just runs conversations. Simpler but less "magic."
+
+---
+
+## PART 1 — The Complete Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                         RINGIT.AI (Vercel)                           │
+│                                                                      │
+│  Next.js Pages                    Next.js API Routes                │
+│  /landing                         /api/provision  ──────────────┐  │
+│  /onboarding                      /api/clone-prompt              │  │
+│  /onboarding/building             /api/edit-assistant            │  │
+│  /agent/[id]                      /api/calls                     │  │
+│  /dashboard                       /api/webhooks/vapi ◀────────┐  │  │
+│  /settings                        /api/stripe/webhook ◀────┐  │  │  │
+│                                                            │  │  │  │
+└──────────────────────────────────────────────────────────────│──│──│──┘
+                                                               │  │  │
+         ┌─────────────────────────────────────────────────────┘  │  │
+         │ Stripe webhook events                                   │  │
+         │                                                         │  │
+┌────────▼───────────┐  ┌──────────────────────────────────────┐  │  │
+│  STRIPE            │  │  VAPI (Voice AI)                     │  │  │
+│  Subscriptions     │  │  api.vapi.ai                         │  │  │
+│  Billing           │  │                                      │  │  │
+└────────────────────┘  │  POST /assistant (create assistant) ◀┼──┘  │
+                        │  GET /assistant/:id (get details)     │     │
+┌────────────────────┐  │  PATCH /assistant/:id (update)        │     │
+│  SUPABASE          │  │  POST /call/web (start call)          │     │
+│                    │  │  POST /call/phone (outbound call)     │     │
+│  Tables:           │  │  GET /calls (call history)            │     │
+│  - users (auth)    │  │  POST /webhooks (subscribe to events) │     │
+│  - agents          │  │                                       │     │
+│  - calls           │  └─────────────────────────────────────┐  │     │
+│  - subscriptions   │                   │                    │  │     │
+│  - crm_sync        │         SIP / Telephony               │  │     │
+└────────────────────┘                   │                    │  │     │
+                                         ▼                    │  │     │
+                        ┌──────────────────────────────────┐  │  │     │
+                        │  TWILIO                           │  │  │     │
+                        │  • Phone numbers                  │  │  │     │
+                        │  • Inbound call routing           │  │  │     │
+                        │  • SIP trunking to Vapi           │  │  │     │
+                        └──────────────────────────────────┘  │  │     │
+                                                               │  │     │
+        ┌──────────────────────────────────────────────────────┘  │     │
+        │ LLM for prompt generation (optional - can use Claude)   │     │
+        │                                                         │     │
+┌───────▼──────────────────┐   ┌──────────────────────────────────▼─────┐
+│  ANTHROPIC CLAUDE API    │   │  CRM INTEGRATIONS (Post-MVP)           │
+│  (only if you want to    │   │  • ServiceTitan API                    │
+│   auto-generate prompts) │   │  • Housecall Pro API                   │
+│  Usually: manual prompts │   │  • Calendly, Square, etc.              │
+└──────────────────────────┘   │  (receive calls → sync to CRM)          │
+                               └────────────────────────────────────────┘
+```
+
+---
+
+## PART 2 — Tech Stack Breakdown (Your Stack)
+
+| Layer | Tool | Purpose | Cost |
+|-------|------|---------|------|
+| **Frontend** | Next.js 14 | Web app users interact with | Free (Vercel hosting) |
+| **Styling** | Tailwind + shadcn/ui | Beautiful UI components | Free |
+| **Backend** | Next.js API Routes | Your business logic | Free (Vercel) |
+| **Database** | Supabase (Postgres) | User accounts, agents, calls, CRM data | $5-50/mo |
+| **Auth** | Supabase Auth | User sign-up/login | Included |
+| **Phone Numbers** | Twilio | Buy and manage phone numbers | ~$1.15/number/mo |
+| **Voice AI** | Vapi | Handle voice conversations | $0.25-0.75/min |
+| **Billing** | Stripe | Subscriptions | 2.9% + $0.30 per transaction |
+| **CRM Integrations** | ServiceTitan / Housecall Pro APIs | Sync leads to CRM (post-MVP) | Depends on plan |
+| **Webhooks** | Your API routes | Receive call data from Vapi | Free |
+| **Deployment** | Vercel | Host Next.js app | Free tier or $20+/mo |
+| **LLM (optional)** | Anthropic Claude | Auto-generate prompts from business info | $0.003/input token |
+
+**Total approx cost per agent:**
+- Twilio: ~$1.15/month
+- Vapi: ~$20-40/month (assuming 300-500 minutes at $0.40/min average)
+- Supabase: $0.20/agent/month (very cheap)
+- Stripe: 2.9% + 0.30 per billing cycle
+- Claude (if used): $0.10-0.50 per agent creation
+
+**Pricing recommendation for Starter plan ($49/mo):** costs you ~$25-35, margin of $14-24.
+
+---
+
+## PART 3 — The User Experience (Complete Flow)
+
+Same as the Atoms version, but with Vapi powering the voice conversations.
+
+### Scene 1: Priya Lands on Ringit
+
+Landing page. Clicks "Get Started." Creates account via Supabase Auth.
+
+### Scene 2: The 4-Question Wizard
+
+**Step 1:** Industry (Dental)
+**Step 2:** Business details (name, services)
+**Step 3:** Tone (warm & friendly)
+**Step 4:** Lead email
+
+Clicks **"Build My Agent"**
+
+### Scene 3: The Build Screen (What Happens Behind)
+
+Your `/api/provision` endpoint:
+
+```typescript
+// Step A: Write the agent prompt (manually or via Claude)
+// Step B: Create assistant on Vapi
+// Step C: Buy phone number from Twilio
+// Step D: Assign number to Vapi assistant
+// Step E: Register webhook with Vapi
+// Step F: Save to Supabase
+```
+
+Total time: ~20 seconds.
+
+### Scene 4: Success + Optional Voice Clone
+
+Shows phone number. Optional: "Record your voice" (voice clone feature - post-MVP).
+
+### Scene 5: Agent Chat Editor
+
+URL: `ringit.ai/agent/[id]`
+
+User types: *"Make it warmer and more conversational"*
+
+Your `/api/edit-assistant` endpoint:
+- Gets current prompt
+- Calls Claude to rewrite it with the user's request
+- Updates Vapi assistant with new prompt
+- Live in ~5 seconds
+
+### Scene 6: Real Call
+
+Patient calls the number → Vapi assistant answers → calls captured as leads → sent to Priya's email.
+
+### Scene 7: Dashboard
+
+Shows calls, leads, transcripts. All data cached from Vapi webhooks in Supabase.
+
+---
+
+## PART 4 — Complete Code: The Provision Flow
+
+This is the most important endpoint. Here's exactly what your dev needs to build.
+
+```typescript
+// /app/api/provision/route.ts
+
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import Anthropic from '@anthropic-ai/sdk';
+import twilio from 'twilio';
+import axios from 'axios';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+const vapiClient = axios.create({
+  baseURL: 'https://api.vapi.ai',
+  headers: {
+    'Authorization': `Bearer ${process.env.VAPI_API_KEY}`,
+    'Content-Type': 'application/json'
+  }
+});
+
+const twilioClient = twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN
+);
+
+// ─────────────────────────────────────────────────────────────────
+export async function POST(req: NextRequest) {
+  const { industry, businessName, services, tone, leadEmail, userAreaCode } = await req.json();
+  
+  // Get logged-in user
+  const { data: { user } } = await supabase.auth.getUser(
+    req.headers.get('Authorization')?.replace('Bearer ', '') || ''
+  );
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    // ─── STEP A: Generate the agent prompt ─────────────────────────
+    // Option 1: Use your pre-written industry templates (simpler, faster)
+    // Option 2: Call Claude to generate it dynamically (more flexible)
+    
+    // For MVP, use pre-written templates:
+    const prompt = INDUSTRY_PROMPTS[industry];
+    const customPrompt = prompt
+      .replace('{businessName}', businessName)
+      .replace('{services}', services)
+      .replace('{tone}', tone)
+      .replace('{leadEmail}', leadEmail);
+
+    // ─── STEP B: Create assistant on Vapi ──────────────────────────
+    const vapiResponse = await vapiClient.post('/assistant', {
+      name: `${businessName} Receptionist`,
+      voiceId: INDUSTRY_VOICE_MAP[industry], // e.g., "en_US_female_1"
+      model: {
+        messages: [
+          {
+            role: 'system',
+            content: customPrompt
+          }
+        ],
+        provider: 'openai',
+        temperature: 0.7
+      },
+      analyzeConversation: true, // Enable call analytics
+      endCallMessage: 'Thank you for calling. Goodbye!',
+      recordingEnabled: true,
+      maxDurationSeconds: 900, // 15 minutes max
+    });
+
+    const vapiAssistantId = vapiResponse.data.id;
+    console.log('✅ Vapi assistant created:', vapiAssistantId);
+
+    // ─── STEP C: Buy phone number from Twilio ──────────────────────
+    const available = await twilioClient.availablePhoneNumbers('US').local
+      .list({ areaCode: userAreaCode || '415', limit: 1 });
+    
+    if (!available.length) {
+      throw new Error('No available phone numbers in that area code');
+    }
+
+    const purchased = await twilioClient.incomingPhoneNumbers.create({
+      phoneNumber: available[0].phoneNumber,
+      // We'll set up SIP routing in Step D
+    });
+    const phoneNumber = purchased.phoneNumber;
+    const twilioPhoneSid = purchased.sid;
+    console.log('✅ Twilio number purchased:', phoneNumber);
+
+    // ─── STEP D: Set up Twilio SIP Trunking to Vapi ────────────────
+    // Get or create a Twilio SIP Trunk that routes to Vapi
+    const sips = await twilioClient.api.v1.sip.domains.list({ limit: 1 });
+    let sipDomain = sips[0];
+    
+    if (!sipDomain) {
+      // Create a new SIP domain if none exists
+      sipDomain = await twilioClient.api.v1.sip.domains.create({
+        domainName: `${process.env.TWILIO_ACCOUNT_SID}.sip.twilio.com`
+      });
+    }
+
+    // Set up SIP URI for Vapi (Vapi's SIP endpoint)
+    const sipUri = `sip:${process.env.VAPI_SIP_ENDPOINT}`;
+    
+    // Create a route on the SIP domain pointing to Vapi
+    // This tells Twilio: "when someone calls this number, send it to Vapi via SIP"
+    const voiceUrl = `https://your-ngrok-url.ngrok.io/api/twilio/incoming-call?vapiAssistantId=${vapiAssistantId}`;
+    
+    // Update Twilio number with voice webhook
+    await twilioClient.incomingPhoneNumbers(twilioPhoneSid).update({
+      voiceUrl,
+      voiceMethod: 'POST',
+    });
+    console.log('✅ Twilio number configured for SIP routing to Vapi');
+
+    // ─── STEP E: Register webhook with Vapi ───────────────────────
+    // Tell Vapi to send call events to your server
+    await vapiClient.post('/webhook', {
+      url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhooks/vapi`,
+      events: ['call_started', 'call_ended', 'transcript_ready'],
+    });
+    console.log('✅ Webhook registered with Vapi');
+
+    // ─── STEP F: Save agent info to Supabase ──────────────────────
+    const { data: savedAgent } = await supabase.from('agents').insert({
+      user_id: user.id,
+      business_name: businessName,
+      industry,
+      tone,
+      services,
+      lead_email: leadEmail,
+      
+      // Vapi references
+      vapi_assistant_id: vapiAssistantId,
+      
+      // Twilio references
+      twilio_phone_number: phoneNumber,
+      twilio_phone_sid: twilioPhoneSid,
+      
+      // Agent state
+      status: 'active',
+      current_prompt: customPrompt,
+      created_at: new Date().toISOString(),
+    }).select().single();
+
+    console.log('✅ Agent saved to Supabase:', savedAgent.id);
+
+    return NextResponse.json({
+      success: true,
+      agentId: savedAgent.id,
+      phoneNumber,
+      vapiAssistantId,
+      message: 'Your receptionist is live!'
+    });
+
+  } catch (error) {
+    console.error('Provision error:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Industry-specific prompts (pre-written)
+const INDUSTRY_PROMPTS: Record<string, string> = {
+  dental: `You are a warm, professional receptionist for {businessName}, a dental clinic.
+
+Your role:
+- Answer calls with a friendly greeting
+- Explain our services: {services}
+- Schedule new patient appointments
+- Collect caller info: name, phone, preferred appointment time, urgency
+- Handle routine questions about hours, location, insurance
+
+Tone: {tone}
+
+When you have all appointment details, confirm with the caller and say:
+"Perfect! I've got you down for [date/time]. A confirmation text will be sent to [phone]. 
+Thank you for choosing {businessName}!"
+
+If it's an emergency, immediately say:
+"This sounds urgent. Please call our emergency line at [EMERGENCY_NUMBER] or go to the nearest ER."
+
+Capture all info and summarize at the end for {leadEmail}.`,
+
+  hvac: `You are an efficient HVAC service coordinator for {businessName}.
+
+Your role:
+- Greet with: "Thank you for calling {businessName}! How can I help with your heating or cooling needs?"
+- Quickly assess: Is this an emergency (no heat in winter) or routine?
+- For emergencies: prioritize immediate scheduling
+- For routine: offer convenient appointment times
+- Collect: name, address, phone, description of issue
+- Mention services: {services}
+
+Tone: {tone}
+
+Use this framework:
+1. Greet warmly
+2. Ask: "What's going on with your system?"
+3. Ask: "Is this urgent or can it wait?" (if urgent, offer same-day appointment)
+4. Collect name, address, best number to reach them
+5. Confirm appointment time
+6. End: "We'll see you at [time]. Thank you!"
+
+Send all details to {leadEmail}.`,
+
+  legal: `You are a professional intake coordinator for {businessName} law firm.
+
+Your role:
+- Professionally greet callers
+- Identify case type: {services}
+- Collect client info: name, phone, email, brief case description
+- Schedule consultation with appropriate attorney
+- Handle sensitive information with discretion
+
+Tone: {tone}
+
+Script:
+1. Greet: "Thank you for calling {businessName}. This is the intake line. How can I assist you?"
+2. Ask: "What brings you in today?"
+3. Listen and clarify case type
+4. Take: name, phone, email, availability for consultation
+5. Confirm: "An attorney will call you within [timeframe]. Thank you."
+
+Important: Never give legal advice. Always defer to "an attorney will discuss that with you."
+Send details to {leadEmail}.`,
+
+  salon: `You are a friendly, upbeat receptionist for {businessName} salon.
+
+Your role:
+- Book appointments for all services: {services}
+- Help clients find the right stylist
+- Answer questions about pricing, products, hours
+- Capture: name, phone, service wanted, preferred stylist, best appointment time
+
+Tone: {tone}
+
+Keep it warm, enthusiastic, and welcoming:
+1. Greet: "Hi! Welcome to {businessName}. What can I book for you today?"
+2. Listen to what they want
+3. Offer available times
+4. Confirm: stylist, date, time, phone
+5. End upbeat: "We can't wait to see you! [date/time]. See you then!"
+
+Send bookings to {leadEmail}.`,
+
+  real_estate: `You are a professional real estate receptionist for {businessName}.
+
+Your role:
+- Understand caller's intent: buying, selling, investing, renting
+- Collect: name, phone, email, property interest, timeline
+- Schedule showing or consultation
+- Answer basic questions about listings
+
+Tone: {tone}
+
+Script:
+1. Greet: "Thank you for calling {businessName}. Are you looking to buy, sell, or rent?"
+2. Based on answer, ask relevant follow-ups
+3. Collect contact info and specific property/area of interest
+4. Suggest next steps (property viewing, home valuation, etc.)
+5. Schedule with an agent
+6. Confirm: "An agent will contact you within 24 hours. Thank you!"
+
+Details go to {leadEmail}.`,
+
+  healthcare: `You are a compassionate medical receptionist for {businessName}.
+
+Your role:
+- Schedule appointments
+- Answer questions about services: {services}
+- Handle urgent situations (direct to ER if needed)
+- Collect: name, phone, insurance, symptoms (if appointment type needs it)
+
+Tone: {tone}
+
+Important safety rule:
+If caller mentions: severe pain, chest pain, difficulty breathing, or other emergency signs
+→ Immediately say: "This sounds urgent. Please call 911 or go to the nearest ER. We want you safe."
+
+Normal flow:
+1. Greet warmly: "Thank you for calling {businessName}. How can I help?"
+2. If appointment: ask reason, preferred time, get phone
+3. If question: answer based on services offered
+4. Confirm and send to {leadEmail}
+
+Be warm and reassuring — many patients are anxious.`,
+
+  restaurant: `You are a warm, welcoming restaurant host for {businessName}.
+
+Your role:
+- Take reservations for {services}
+- Answer questions about the menu, location, hours
+- Handle special requests and event bookings
+- Build excitement about dining with you
+
+Tone: {tone}
+
+Script:
+1. Greet: "Hello! Thank you for calling {businessName}. How can I help you?"
+2. If reservation: ask party size, preferred time/date, name, phone
+3. If question: answer helpfully and enthusiastically
+4. If event inquiry: take details and offer to discuss options
+5. Confirm: "Perfect! We'll see you at [time] for [party size]. We're excited to host you!"
+
+Send reservations to {leadEmail}.`,
+
+  gym: `You are an energetic gym membership receptionist for {businessName}.
+
+Your role:
+- Explain membership options
+- Book intro sessions or tours
+- Answer questions about classes: {services}
+- Capture: name, phone, fitness goals, preferred time
+
+Tone: {tone}
+
+Keep energy high:
+1. Greet: "Hey! Thanks for calling {businessName}. Ready to start your fitness journey?"
+2. Ask about their fitness goals
+3. Explain membership tiers and classes
+4. Book a free tour/intro: "Come see our facility! When works for you?"
+5. Get contact info
+6. Send: "We can't wait to see you! [date]. Let's get started!"
+
+Details to {leadEmail}.`,
+};
+
+const INDUSTRY_VOICE_MAP: Record<string, string> = {
+  dental: 'en_US_female_1',      // Warm, professional female voice
+  hvac: 'en_US_male_1',          // Practical male voice
+  legal: 'en_US_female_2',       // Professional female voice
+  salon: 'en_US_female_3',       // Friendly, upbeat female voice
+  real_estate: 'en_US_female_2', // Professional female voice
+  healthcare: 'en_US_female_1',  // Warm, reassuring female voice
+  restaurant: 'en_US_female_3',  // Friendly, welcoming female voice
+  gym: 'en_US_male_2',           // Energetic male voice
+};
+```
+
+---
+
+## PART 5 — Twilio → Vapi SIP Routing (The Tricky Part)
+
+When someone calls your Twilio number, Twilio needs to forward it to Vapi. There are two approaches:
+
+### Approach A: Vapi's Twilio Integration (Easiest)
+
+Vapi has a native Twilio integration. In this flow:
+
+1. You buy the number on Twilio
+2. You connect your Twilio account to Vapi (OAuth or API key)
+3. Vapi can assign phone numbers directly
+
+```typescript
+// Contact Vapi support to link your Twilio account
+// Once linked, you can do this:
+
+await vapiClient.post('/assistant', {
+  name: `${businessName} Receptionist`,
+  voiceId: 'en_US_female_1',
+  model: { /* ... */ },
+  // VAPI ASSIGNS THE PHONE NUMBER DIRECTLY
+  phoneNumbers: [phoneNumber] // Pass in the Twilio number
+});
+```
+
+**Pros:** Simplest setup
+**Cons:** Requires OAuth setup with Vapi
+
+### Approach B: SIP Trunking (More Control)
+
+Twilio forwards calls to Vapi via SIP protocol.
+
+```typescript
+// 1. Create a SIP trunk in Twilio
+const trunk = await twilioClient.api.v1.sip.trunks.create({
+  friendlyName: 'Vapi SIP Trunk',
+  domainName: `ringit-${process.env.TWILIO_ACCOUNT_SID}.sip.twilio.com`
+});
+
+// 2. Add a termination URI (where calls go)
+await twilioClient.api.v1.sip.trunks(trunk.sid).terminationSettings.update({
+  uri: `sip:${process.env.VAPI_SIP_ENDPOINT}`,
+});
+
+// 3. Update the Twilio phone number to use this trunk
+await twilioClient.incomingPhoneNumbers(twilioPhoneSid).update({
+  trunkSid: trunk.sid
+});
+```
+
+**Pros:** More control, explicit routing
+**Cons:** Requires SIP configuration
+
+---
+
+## PART 6 — Edit Agent Endpoint (Chat Editor)
+
+When user types "make it warmer," this endpoint fires:
+
+```typescript
+// /app/api/edit-assistant/route.ts
+
+export async function POST(req: NextRequest) {
+  const { agentId, userMessage } = await req.json();
+
+  // 1. Get current agent from Supabase (for context)
+  const { data: agent } = await supabase
+    .from('agents')
+    .select('vapi_assistant_id, current_prompt, industry')
+    .eq('id', agentId)
+    .single();
+
+  // 2. Use Claude to rewrite the prompt based on user feedback
+  const claude = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  
+  const editResponse = await claude.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 2000,
+    messages: [{
+      role: 'user',
+      content: `Here is a ${agent.industry} receptionist prompt:
+
+${agent.current_prompt}
+
+The user wants to make this change: "${userMessage}"
+
+Return the COMPLETE updated prompt. Keep the structure the same, just apply the requested change.
+Return ONLY the prompt text, no explanation.`
+    }]
+  });
+
+  const newPrompt = (editResponse.content[0] as any).text;
+
+  // 3. Update the Vapi assistant with the new prompt
+  await vapiClient.patch(`/assistant/${agent.vapi_assistant_id}`, {
+    model: {
+      messages: [
+        {
+          role: 'system',
+          content: newPrompt
+        }
+      ]
+    }
+  });
+
+  // 4. Save the updated prompt to Supabase
+  await supabase
+    .from('agents')
+    .update({ current_prompt: newPrompt })
+    .eq('id', agentId);
+
+  return NextResponse.json({
+    message: `Done! Your agent is now: ${userMessage.toLowerCase()}. Changes are live.`,
+    success: true
+  });
+}
+```
+
+---
+
+## PART 7 — Webhook Handler (How Calls Come Back)
+
+Vapi fires webhooks when calls end. Your server receives them:
+
+```typescript
+// /app/api/webhooks/vapi/route.ts
+
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+  const { event, data } = body;
+
+  if (event === 'call_ended') {
+    // Find which agent this call belongs to
+    const { data: agent } = await supabase
+      .from('agents')
+      .select('id, user_id, lead_email, business_name')
+      .eq('vapi_assistant_id', data.assistantId)
+      .single();
+
+    if (!agent) return NextResponse.json({ ok: true });
+
+    // 2. Get the full call transcript from Vapi
+    const callDetails = await vapiClient.get(`/call/${data.callId}`);
+    const { transcript, duration, summary } = callDetails.data;
+
+    // 3. Extract lead info from transcript
+    // (AI-based: use Claude to parse "What's the caller's name, phone, and what did they want?")
+    const leadInfo = await extractLeadInfo(transcript);
+
+    // 4. Save to Supabase
+    await supabase.from('calls').insert({
+      agent_id: agent.id,
+      user_id: agent.user_id,
+      vapi_call_id: data.callId,
+      duration_seconds: duration,
+      transcript: transcript,
+      summary: summary,
+      lead_name: leadInfo.name,
+      lead_phone: leadInfo.phone,
+      lead_intent: leadInfo.intent,
+      created_at: new Date().toISOString()
+    });
+
+    // 5. Send lead email to the business owner
+    await sendLeadEmail({
+      to: agent.lead_email,
+      businessName: agent.business_name,
+      callDuration: duration,
+      leadName: leadInfo.name,
+      leadPhone: leadInfo.phone,
+      leadIntent: leadInfo.intent,
+      transcript: transcript,
+    });
+
+    // 6. POST to ServiceTitan (if customer has it set up) - POST-MVP
+    if (agent.servicetitan_webhook_url) {
+      await fetch(agent.servicetitan_webhook_url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: leadInfo.name,
+          phone: leadInfo.phone,
+          serviceType: leadInfo.intent,
+          notes: transcript.substring(0, 500) // first 500 chars
+        })
+      }).catch(err => console.error('ServiceTitan sync failed:', err));
+    }
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
+// Helper: Extract lead info from transcript using Claude
+async function extractLeadInfo(transcript: string) {
+  const claude = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  
+  const response = await claude.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 200,
+    messages: [{
+      role: 'user',
+      content: `Extract from this call transcript:
+1. Caller's name (or "Unknown")
+2. Caller's phone (or "Not provided")
+3. What they wanted (brief, one line)
+
+Transcript:
+${transcript}
+
+Return JSON only: { "name": "...", "phone": "...", "intent": "..." }`
+    }]
+  });
+
+  const text = (response.content[0] as any).text;
+  return JSON.parse(text);
+}
+```
+
+---
+
+## PART 8 — Supabase Schema
+
+```sql
+-- Users managed by Supabase Auth
+
+-- One agent per business
+CREATE TABLE agents (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id             UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  business_name       TEXT NOT NULL,
+  industry            TEXT NOT NULL,
+  tone                TEXT,
+  services            TEXT,
+  lead_email          TEXT NOT NULL,
+  
+  -- Vapi references
+  vapi_assistant_id   TEXT UNIQUE NOT NULL,
+  vapi_phone_number   TEXT,  -- if Vapi manages the number
+  
+  -- Twilio references
+  twilio_phone_number TEXT NOT NULL,  -- assigned number
+  twilio_phone_sid    TEXT UNIQUE,
+  
+  -- Current state
+  status              TEXT DEFAULT 'active',  -- active, paused, cancelled
+  current_prompt      TEXT,  -- the live prompt being used
+  
+  -- CRM integration (post-MVP)
+  servicetitan_webhook_url TEXT,  -- where to send leads
+  housecall_webhook_url    TEXT,
+  
+  created_at          TIMESTAMPTZ DEFAULT now(),
+  updated_at          TIMESTAMPTZ DEFAULT now()
+);
+
+-- Cached call data from Vapi webhooks
+CREATE TABLE calls (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id          UUID REFERENCES agents(id) ON DELETE CASCADE,
+  user_id           UUID REFERENCES auth.users(id),
+  vapi_call_id      TEXT UNIQUE,
+  duration_seconds  INTEGER,
+  transcript        TEXT,
+  summary           TEXT,  -- AI summary from Vapi
+  lead_name         TEXT,  -- extracted
+  lead_phone        TEXT,  -- extracted
+  lead_intent       TEXT,  -- what they wanted
+  created_at        TIMESTAMPTZ DEFAULT now()
+);
+
+-- Stripe subscriptions
+CREATE TABLE subscriptions (
+  id                     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id                UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  stripe_customer_id     TEXT UNIQUE,
+  stripe_subscription_id TEXT UNIQUE,
+  plan                   TEXT DEFAULT 'starter',
+  status                 TEXT DEFAULT 'active',
+  current_period_end     TIMESTAMPTZ,
+  created_at             TIMESTAMPTZ DEFAULT now()
+);
+
+-- CRM sync log (for debugging)
+CREATE TABLE crm_sync_log (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id        UUID REFERENCES agents(id),
+  crm_type        TEXT,  -- 'servicetitan', 'housecall', etc
+  call_id         UUID REFERENCES calls(id),
+  status          TEXT,  -- 'success', 'failed', 'pending'
+  error_message   TEXT,
+  created_at      TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_agents_user_id ON agents(user_id);
+CREATE INDEX idx_calls_agent_id ON calls(agent_id);
+CREATE INDEX idx_calls_created_at ON calls(created_at DESC);
+```
+
+---
+
+## PART 9 — Environment Variables
+
+```bash
+# ── Vapi ──────────────────────────────
+VAPI_API_KEY=sk_...
+VAPI_SIP_ENDPOINT=sip://vapi-your-org.sip.vapi.ai  # Get from Vapi support
+
+# ── Twilio ────────────────────────────
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxx
+
+# ── Supabase ──────────────────────────
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+
+# ── Anthropic (for prompt editing) ───
+ANTHROPIC_API_KEY=sk-ant-...
+
+# ── Stripe ────────────────────────────
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
+
+# ── App ───────────────────────────────
+NEXT_PUBLIC_BASE_URL=https://ringit.ai
+NODE_ENV=production
+```
+
+---
+
+## PART 10 — Industry Prompts (Expanded)
+
+All prompts are in the code above. Customize them for your use case.
+
+Key pattern for all:
+1. Warm greeting
+2. Identify what they need
+3. Collect name, phone, email
+4. Confirm next steps
+5. Summary for email
+
+---
+
+## PART 11 — CRM Integration (Post-MVP)
+
+### ServiceTitan Integration
+
+Once your MVP is launched and you have paying customers, add CRM sync:
+
+```typescript
+// When lead is captured, POST to ServiceTitan API
+
+const sendToServiceTitan = async (leadInfo: {
+  name: string;
+  phone: string;
+  intent: string;
+  transcript: string;
+}, vapiCallId: string) => {
+  
+  // ServiceTitan expects a specific format
+  const servicetitanPayload = {
+    firstName: leadInfo.name.split(' ')[0],
+    lastName: leadInfo.name.split(' ')[1] || '',
+    phone: leadInfo.phone,
+    email: '', // not always available
+    serviceType: leadInfo.intent,
+    source: 'ringit_ai_receptionist',
+    notes: leadInfo.transcript.substring(0, 500),
+    tags: ['ringit', vapiCallId]
+  };
+
+  // Call their Create Lead API
+  const response = await fetch('https://api.servicetitan.com/v2/companies/{companyId}/leads', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${customerServiceTitanToken}`, // from customer's account
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(servicetitanPayload)
+  });
+
+  return response.json();
+};
+```
+
+### Housecall Pro Integration
+
+Similar flow for Housecall Pro customers.
+
+---
+
+## PART 12 — Pricing
+
+| Plan | Price | Agents | Minutes/mo | Features |
+|---|---|---|---|---|
+| Starter | $49/mo | 1 | 500 min | Basic AI receptionist |
+| Pro | $99/mo | 3 | 2,000 min | + Voice clone, chat editor |
+| Agency | $249/mo | 10 | 10,000 min | + CRM sync, analytics |
+
+**Cost breakdown (500 min/month):**
+- Vapi: ~$200/month (at $0.40/min average) — **way over budget**
+
+**Wait, this doesn't work.** Vapi costs too much for $49/month plan if customer makes 500 minutes.
+
+### Revised Approach:
+
+You can't make money at those prices with Vapi. Options:
+
+**Option 1:** Use Retell AI (cheaper, $0.10-0.30/min) and adjust pricing
+**Option 2:** Sell on usage: Base $49 + $0.05/minute overage
+**Option 3:** Lower minute limits: Starter = 100 minutes/month at $49
+**Option 4:** Raise prices: Starter = $99/month
+
+**Recommended:** Use **Retell AI** instead of Vapi. Same architecture, 1/4 the cost.
+
+---
+
+## PART 13 — Build Timeline
+
+### Week 1 — Foundation
+- [ ] Next.js project setup
+- [ ] Supabase schema and auth
+- [ ] Get Vapi API key, test basic API calls
+- [ ] Get Twilio account, buy 1 test number
+- [ ] Set up Stripe test account
+
+### Week 2 — Core Flow
+- [ ] Landing page + onboarding wizard UI
+- [ ] `/api/provision` endpoint (all steps)
+- [ ] Animated build screen
+- [ ] Success state with phone number
+
+### Week 3 — Agent Editor + Dashboard
+- [ ] Chat editor UI
+- [ ] `/api/edit-assistant` endpoint
+- [ ] Webhook receiver
+- [ ] Calls table in dashboard
+
+### Week 4 — Monetization
+- [ ] Stripe checkout
+- [ ] Subscription paywall
+- [ ] Lead email notifications
+- [ ] Mobile responsiveness + polish
+
+---
+
+## PART 14 — Key Differences from Atoms Architecture
+
+| Feature | Atoms | Vapi/Retell |
+|---------|-------|-------------|
+| **Prompt generation** | Via template API | Manual or Claude |
+| **Phone numbers** | Import via SIP | Twilio (manage separately) |
+| **Voice cloning** | Via Waves API | Post-MVP feature |
+| **Multi-tenant** | Built-in isolation | You manage via agent IDs |
+| **Cost** | More expensive | Cheaper (Retell) |
+| **Complexity** | Less integration needed | More SIP config |
+| **Setup time** | ~5 minutes | ~10 minutes |
+
+---
+
+## PART 15 — Critical Things to Know
+
+1. **Vapi's Twilio integration is easier.** Let Vapi manage phone numbers directly instead of SIP trunking.
+
+2. **Use Retell instead of Vapi if cost matters.** Same features, 1/3 the price.
+
+3. **Prompt engineering is NOW your job.** Unlike Atoms, Vapi doesn't auto-generate. You write the prompts.
+
+4. **Claude is required for chat editor.** You MUST have Anthropic API key for the "edit agent" feature.
+
+5. **Lead extraction from transcript is manual or AI-based.** Vapi gives you the transcript, you parse it.
+
+6. **SIP configuration is optional.** Use Vapi's built-in Twilio integration instead.
+
+7. **Retell is equally good but cheaper.** Swap it in seamlessly — same architecture.
+
+---
+
+## PART 16 — Quick Questions to Ask Vapi/Retell
+
+Before starting:
+1. What's your cheapest plan for bulk usage?
+2. Can we get volume discounts?
+3. Do you have an integration with Twilio I should use?
+4. What's the API rate limit?
+5. Can we get a test account with $50 credits?
+
+---
+
+*Built on Vapi/Retell + Twilio + Supabase + Stripe + Next.js*
+*Alternative to Atoms — Same product, different engine*

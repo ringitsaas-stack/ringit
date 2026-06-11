@@ -1,0 +1,232 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fafafa;
+  --foreground: #070d24;
+  --foreground-blue: #1248de;
+  --card: #ffffff;
+  --card-foreground: #070d24;
+  --popover: #ffffff;
+  --popover-foreground: #070d24;
+  --primary: #070d24;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #070d24;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #070d24;
+  --destructive: #fee2e2;
+  --destructive-foreground: #991b1b;
+  --border: #e4e4e7;
+  --border-blue: #1248de;
+  --input: #e4e4e7;
+  --ring: #a1a1aa;
+  --radius: 0.75rem;
+
+  --glow-primary: rgba(0, 0, 0, 0.01);
+  --glow-accent: rgba(59, 130, 246, 0.05);
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.06);
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-foreground-blue: var(--foreground-blue);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-border-blue: var(--border-blue);
+  
+  --font-sans: var(--font-geist-sans), "Geist Placeholder", sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+  
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-fade-in: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Base resets & theme transitions */
+body, input, button, select, textarea {
+  font-family: var(--font-geist-sans), "Geist Placeholder", sans-serif;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  font-family: var(--font-primary);
+  font-weight: 400;
+}
+
+.font-light {
+  font-weight: 300;
+}
+
+.font-regular {
+  font-weight: 400;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+.font-extrabold {
+  font-weight: 800;
+}
+
+/* Premium Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* Premium glassmorphism utility classes */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+
+
+.glass-panel-hover {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-panel-hover:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08), 0 0 15px rgba(255, 255, 255, 0.01);
+}
+
+
+
+/* Subtle glow indicators */
+.status-indicator-live {
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+  animation: pulse 2s infinite;
+}
+
+/* Custom premium styling for native HTML select dropdown option lists */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 0.85rem;
+  padding-right: 2.25rem !important;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+select:hover {
+  border-color: var(--ring);
+}
+
+select option {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+  padding: 8px !important;
+}
+
+select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2309090b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+}
+
+/* Framer Premium Button Style */
+.btn-framer-primary {
+  background-color: #1248de;
+  color: rgb(255, 255, 255) !important;
+  border-radius: 100px;
+  border: 1px solid #1c4ed6;
+  box-shadow: rgba(87, 146, 255, 0.43) 0px 0.301094px 0.421531px -1.25px, 
+              rgba(87, 146, 255, 0.38) 0px 1.14427px 1.60197px -2.5px, 
+              rgba(87, 146, 255, 0.15) 0px 5px 7px -3.75px, 
+              rgba(255, 255, 255, 0.04) 0px 0.241451px 0.434611px 0px inset, 
+              rgba(255, 255, 255, 0.35) 0px 2px 3.6px 0px inset;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-framer-primary:hover {
+  background-color: rgb(28, 88, 240);
+  transform: translateY(-1px);
+  box-shadow: rgba(87, 146, 255, 0.5) 0px 0.4px 0.6px -1px, 
+              rgba(87, 146, 255, 0.45) 0px 1.5px 2px -2px, 
+              rgba(87, 146, 255, 0.2) 0px 7px 10px -3px, 
+              rgba(255, 255, 255, 0.05) 0px 0.3px 0.5px 0px inset, 
+              rgba(255, 255, 255, 0.4) 0px 2.5px 4.5px 0px inset;
+}
+
+.btn-framer-primary:active {
+  transform: translateY(0);
+  background-color: rgb(12, 62, 202);
+}
+
+
+.shiny-text {
+  @apply text-transparent bg-clip-text;
+
+  background-image: linear-gradient(
+    110deg,
+    #1248de 48%,
+    #ffffff 50%,
+    #1248de 52%
+  );
+
+  background-size: 400% 100%;
+  animation: shine 12s linear infinite;
+}
+
+@keyframes shine {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
