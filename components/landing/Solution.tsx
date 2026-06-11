@@ -20,9 +20,9 @@ const SOLUTION_FEATURES = [
   },
   {
     id: "03.",
-    title: "Smart Escalation to Humans",
-    desc: "Seamlessly transfer calls to your human team when complex reasoning or high-touch intervention is required, passing along the full call transcript.",
-    image: "/Sol_3.avif",
+    title: "Secure Lead & CRM Storage",
+    desc: "We capture and store every call log, contact detail, and lead requirement automatically. Securely sync all customer records in real-time to keep your business pipeline fully up-to-date.",
+    image: "/Sol_3.png",
   },
   {
     id: "04.",
@@ -34,6 +34,7 @@ const SOLUTION_FEATURES = [
 
 export default function LandingSolution() {
   const [activeTab, setActiveTab] = useState(0);
+  const [loadedImages, setLoadedImages] = useState<Record<number, boolean>>({});
 
   return (
     <section
@@ -137,19 +138,25 @@ export default function LandingSolution() {
                 return (
                   <div
                     key={feat.id}
-                    className={`absolute inset-0 ${
+                    className={`absolute inset-0 transition-all duration-300 ${
                       isActive
                         ? "opacity-100 z-10 scale-100"
                         : "opacity-0 z-0 scale-95"
                     }`}
                   >
+                    {!loadedImages[index] && (
+                      <div className="absolute inset-0 bg-secondary/30 animate-pulse flex items-center justify-center z-[11]">
+                        <div className="w-8 h-8 rounded-full border-2 border-foreground-blue border-t-transparent animate-spin" />
+                      </div>
+                    )}
                     <Image
                       src={feat.image}
                       alt={feat.title}
                       fill
                       sizes="(max-width: 1024px) 100vw, 576px"
-                      className="object-cover"
+                      className={`object-cover transition-opacity duration-300 ${loadedImages[index] ? 'opacity-100' : 'opacity-0'}`}
                       priority={index === 0}
+                      onLoad={() => setLoadedImages(prev => ({ ...prev, [index]: true }))}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
                   </div>

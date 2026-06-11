@@ -74,7 +74,7 @@ export default function LandingHero() {
 
           {/* Animated BG avif behind the mockup (larger than the card to bleed outwards) */}
           <div
-            className="absolute -inset-y-30 -inset-x-45 -z-20 bg-cover bg-center opacity-65 pointer-events-none mix-blend-multiply"
+            className="absolute -inset-y-30 -inset-x-45 -z-20 bg-cover bg-center opacity-50 pointer-events-none mix-blend-multiply"
             style={{
               backgroundImage: "url('/Bg_animation.avif')",
             }}

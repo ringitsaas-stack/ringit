@@ -93,9 +93,10 @@ export const TIERS: PricingTier[] = [
 
 interface PricingProps {
   isPricingPage?: boolean;
+  isDashboard?: boolean;
 }
 
-export default function LandingPricing({ isPricingPage = false }: PricingProps) {
+export default function LandingPricing({ isPricingPage = false, isDashboard = false }: PricingProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isYearly, setIsYearly] = useState(false);
@@ -211,22 +212,28 @@ export default function LandingPricing({ isPricingPage = false }: PricingProps) 
     <section
       id="pricing"
       className={`relative w-full overflow-hidden ${
-        isPricingPage ? "py-12" : "py-12  bg-background"
+        isDashboard
+          ? "py-4 bg-transparent"
+          : isPricingPage
+          ? "py-12"
+          : "py-12 bg-background"
       }`}
     >
       <div className="max-w-6xl mx-auto px-6 w-full">
         {/* Header copy (Left-aligned, matching the rest of the page vertical rhythm) */}
-        <div className="space-y-4 max-w-3xl mb-12 text-left w-full">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border-blue/20 bg-card/60 shadow-sm text-xs font-semibold tracking-normal">
-            <span className="w-2 h-2 rounded-full bg-foreground-blue" />
-            <span className="text-foreground font-medium text-[13px]">
-              Pricing Plans
-            </span>
-          </div>
-          <h2 className="text-3xl mb-2 md:text-5xl font-extrabold text-foreground tracking-tight leading-tight">
+        <div className={`space-y-3 max-w-3xl text-left w-full ${isDashboard ? "mb-6" : "mb-12"}`}>
+          {!isDashboard && (
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border-blue/20 bg-card/60 shadow-sm text-xs font-semibold tracking-normal">
+              <span className="w-2 h-2 rounded-full bg-foreground-blue" />
+              <span className="text-foreground font-medium text-[13px]">
+                Pricing Plans
+              </span>
+            </div>
+          )}
+          <h2 className={`text-foreground tracking-tight leading-tight ${isDashboard ? "font-semibold text-xl md:text-2xl mb-1" : "font-extrabold text-3xl mb-2 md:text-5xl"}`}>
             Choose the  <span className="text-foreground-blue">Plan</span>
           </h2>
-          <p className="text-muted-foreground text-base md:text-xl max-w-2xl font-medium leading-relaxed">
+          <p className={`text-muted-foreground font-medium ${isDashboard ? "text-xs md:text-sm max-w-xl" : "text-base md:text-xl max-w-2xl leading-relaxed"}`}>
             Every plan includes our core AI Receptionist setup. Upgrade to unlock CRM sync, voice cloning, and advanced reasoning models.
           </p>
         </div>
@@ -330,10 +337,14 @@ export default function LandingPricing({ isPricingPage = false }: PricingProps) 
               return (
                 <div
                   key={tier.key}
-                  className={`relative flex flex-col p-8 rounded-3xl border transition-all duration-300 bg-white text-foreground ${
-                    isPopular
-                      ? "border-2 border-foreground-blue shadow-lg scale-105 z-10"
-                      : "border-border/80 shadow-md hover:border-border hover:shadow-lg"
+                  className={`relative flex flex-col p-8 rounded-3xl border transition-all duration-300 ${
+                    isDashboard
+                      ? isPopular
+                        ? "border-2 border-foreground-blue bg-card/65 text-foreground shadow-lg scale-105 z-10"
+                        : "border-border/60 bg-card/30 text-foreground shadow-md hover:border-zinc-400"
+                      : isPopular
+                      ? "border-2 border-foreground-blue bg-white text-foreground shadow-lg scale-105 z-10"
+                      : "border-border/80 bg-white text-foreground shadow-md hover:border-border hover:shadow-lg"
                   }`}
                 >
                   {isPopular && (

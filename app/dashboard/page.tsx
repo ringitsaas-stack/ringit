@@ -3,6 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useDashboard } from './hooks/useDashboard';
+import { RefreshCw, LogOut } from 'lucide-react';
 
 import DashboardSidebar from '@/app/dashboard/DashboardSidebar';
 import StatsBar from '@/app/dashboard/StatsBar';
@@ -13,6 +14,7 @@ import LandingPricing from '@/components/landing/Pricing';
 
 export default function DashboardPage() {
   const router = useRouter();
+  const [isProfilePopoverOpen, setIsProfilePopoverOpen] = React.useState(false);
 
   const {
     toast,
@@ -98,18 +100,60 @@ export default function DashboardPage() {
 
       <main className="flex-1 flex flex-col h-screen overflow-y-auto bg-background/50">
         {/* Sticky Workspace Header */}
+        {/* Sticky Workspace Header */}
         <header className="sticky top-0 z-30 bg-background/40 backdrop-blur-md border-b border-border/60 py-4 px-8 flex justify-between items-center shrink-0">
           <div>
             <h1 className="text-xl font-bold text-foreground capitalize">{dashboardTab}</h1>
           </div>
-          <button
-            onClick={() => syncRetellCalls(true)}
-            disabled={isSyncing || isAuthLoading || !currentAgent}
-            className="bg-secondary text-secondary-foreground text-xs py-2 px-4 rounded-xl hover:opacity-90 transition-all flex items-center gap-1.5 shadow-md border border-secondary/10 disabled:opacity-50"
-          >
-            <span className={isSyncing ? 'animate-spin inline-block' : ''}>🔄</span>
-            {isSyncing ? 'Syncing...' : 'Sync Logs'}
-          </button>
+          <div className="flex items-center gap-4 relative">
+            {/* <button
+              onClick={() => syncRetellCalls(true)}
+              disabled={isSyncing || isAuthLoading || !currentAgent}
+              className="bg-secondary text-secondary-foreground text-xs py-2 px-4 rounded-xl hover:opacity-90 transition-all flex items-center gap-1.5 shadow-md border border-secondary/10 disabled:opacity-50 font-bold cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? 'Syncing...' : 'Sync Logs'}
+            </button> */}
+
+            {/* Profile Avatar & Popover */}
+            {user && (
+              <div className="relative">
+                <button
+                  onClick={() => setIsProfilePopoverOpen(!isProfilePopoverOpen)}
+                  className="w-9 h-9 rounded-full bg-foreground-blue text-white hover:bg-foreground-blue/90 flex items-center justify-center text-sm font-bold border border-border shadow-sm shrink-0 cursor-pointer transition-colors"
+                >
+                  {user.fullName.charAt(0).toUpperCase()}
+                </button>
+
+                {isProfilePopoverOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setIsProfilePopoverOpen(false)} 
+                    />
+                    <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-border bg-card shadow-2xl z-50 p-4 animate-fade-in space-y-3">
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground font-medium">Signed in as</p>
+                        <p className="text-sm font-bold text-foreground truncate">{user.fullName}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                      </div>
+                      <div className="border-t border-border pt-2.5">
+                        <button
+                          onClick={() => {
+                            setIsProfilePopoverOpen(false);
+                            handleSignOut();
+                          }}
+                          className="w-full text-center text-xs uppercase text-red-500 hover:text-white bg-red-500/10 hover:bg-red-500 px-3 py-2 rounded-lg transition-all border border-red-500/20 tracking-wider font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          Sign Out <LogOut className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </header>
 
         {/* Scrollable Content */}
@@ -241,11 +285,13 @@ export default function DashboardPage() {
                     setSelectedAgentId={setSelectedAgentId}
                     setDashboardTab={setDashboardTab}
                     onNewAgentClick={() => router.push('/onboarding')}
+                    agentCalls={agentCalls}
+                    allCalls={calls}
                   />
                 </div>
               )}
 
-              {dashboardTab === 'agents' && (
+              {dashboardTab === 'leads' && (
                 <AgentsTab
                   agentCalls={agentCalls}
                 />
@@ -253,7 +299,7 @@ export default function DashboardPage() {
 
               {dashboardTab === 'pricing' && (
                 <div className="glass-panel p-6 rounded-2xl border border-border/60 bg-card/45 animate-fade-in-up">
-                  <LandingPricing isPricingPage={true} />
+                  <LandingPricing isPricingPage={true} isDashboard={true} />
                 </div>
               )}
 

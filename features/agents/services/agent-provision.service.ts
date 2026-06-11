@@ -11,6 +11,7 @@ export interface ProvisionAgentDTO {
   tone: string;
   services: string;
   leadEmail: string;
+  countryCode?: string;
   areaCode?: string;
   existingPhoneNumber?: string;
   existingPhoneSid?: string;
@@ -139,11 +140,11 @@ Tone: {tone}. Summary will be compiled to {leadEmail}.`;
       };
       console.log(`Bypassing Twilio purchase. Linking existing Twilio number: ${dto.existingPhoneNumber}`);
     } else {
-      const availableNumbers = await this.twilioProvider.searchAvailableNumbers(dto.areaCode);
+      const availableNumbers = await this.twilioProvider.searchAvailableNumbers(dto.countryCode, dto.areaCode);
       if (!availableNumbers.length) {
         // Cleanup retell agent if twilio procurement fails
         await this.retellProvider.deleteAssistant(retellAgent.providerAgentId);
-        throw new Error(`No available phone numbers found in area code: ${dto.areaCode || 'US default'}`);
+        throw new Error(`No available phone numbers found in country: ${dto.countryCode || 'US'}${dto.areaCode ? ` with area code: ${dto.areaCode}` : ''}`);
       }
 
       const selectedNumber = availableNumbers[0].phoneNumber;

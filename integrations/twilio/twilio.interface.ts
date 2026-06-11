@@ -26,7 +26,7 @@ export interface TwilioMessageResponse {
 }
 
 export interface ITwilioProvider {
-  searchAvailableNumbers(areaCode?: string): Promise<AvailableNumber[]>;
+  searchAvailableNumbers(countryCode?: string, areaCode?: string): Promise<AvailableNumber[]>;
   purchaseNumber(phoneNumber: string): Promise<PhoneDetails>;
   configureVoiceWebhook(phoneSid: string, webhookUrl: string): Promise<void>;
   sendSMS(params: SendSMSParams): Promise<TwilioMessageResponse>;

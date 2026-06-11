@@ -15,15 +15,16 @@ export class TwilioProvider implements ITwilioProvider {
     this.client = twilio(accountSid, authToken);
   }
 
-  async searchAvailableNumbers(areaCode?: string): Promise<AvailableNumber[]> {
+  async searchAvailableNumbers(countryCode?: string, areaCode?: string): Promise<AvailableNumber[]> {
     try {
+      const code = (countryCode && countryCode.trim().length === 2) ? countryCode.trim().toUpperCase() : 'US';
       const searchOptions: { limit: number; areaCode?: number } = { limit: 5 };
       if (areaCode && areaCode.trim().length === 3) {
         searchOptions.areaCode = Number(areaCode);
       }
 
       const available = await this.client
-        .availablePhoneNumbers('US')
+        .availablePhoneNumbers(code)
         .local.list(searchOptions);
 
       return available.map((number) => ({

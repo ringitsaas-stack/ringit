@@ -34,6 +34,7 @@ export interface Call {
   transcript: string;
   timestamp: string;
   leadName: string;
+  date?: string;
 }
 
 export interface AgentVersion {
@@ -89,13 +90,51 @@ export interface DbCall {
   created_at: string;
 }
 
+export interface DbLead {
+  id: string;
+  agent_id: string;
+  name?: string;
+  phone?: string;
+  intent?: string;
+  summary?: string;
+  created_at: string;
+}
+
+const mapDbCallsToCalls = (dbCalls: DbCall[], dbLeads: DbLead[]): Call[] => {
+  const leadsMap = new Map();
+  if (dbLeads) {
+    dbLeads.forEach(l => {
+      if (l.phone) {
+        leadsMap.set(`${l.agent_id}_${l.phone}`, l);
+      }
+    });
+  }
+  return dbCalls.map((c): Call => {
+    const matchedLead = leadsMap.get(`${c.agent_id}_${c.caller_phone}`);
+    const dateObj = new Date(c.created_at);
+    return {
+      id: c.id,
+      agentId: c.agent_id,
+      caller: c.caller_phone || 'Anonymous',
+      duration: `${Math.floor(c.duration_seconds / 60)}m ${c.duration_seconds % 60}s`,
+      durationSeconds: c.duration_seconds,
+      intent: matchedLead?.intent || 'General Inquiry',
+      summary: c.summary || matchedLead?.summary || 'No details.',
+      transcript: c.transcript ?? '',
+      timestamp: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date: dateObj.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }),
+      leadName: matchedLead?.name || 'Anonymous',
+    };
+  });
+};
+
 export interface DbAgentVersion {
   created_at: string;
   prompt: string;
   config?: { voiceId?: string; tone?: string; services?: string; leadEmail?: string; llmModel?: string; language?: string };
 }
 
-export type DashboardTab = 'dashboard' | 'agents' | 'pricing' | 'settings';
+export type DashboardTab = 'dashboard' | 'leads' | 'pricing' | 'settings';
 
 // ─── Supabase safe getter ──────────────────────────────────────────────────────
 
@@ -272,16 +311,9 @@ export function useDashboard() {
               setAgents(mapped);
               setSelectedAgentId(mapped[0].id);
               const { data: dbCalls } = await supabase.from('calls').select('*').eq('user_id', id).order('created_at', { ascending: false });
+              const { data: dbLeads } = await supabase.from('leads').select('*').eq('user_id', id);
               if (dbCalls?.length) {
-                setCalls((dbCalls as unknown as DbCall[]).map((c): Call => ({
-                  id: c.id, agentId: c.agent_id, caller: c.caller_phone || 'Anonymous',
-                  duration: `${Math.floor(c.duration_seconds / 60)}m ${c.duration_seconds % 60}s`,
-                  durationSeconds: c.duration_seconds,
-                  intent: c.summary ? c.summary.substring(0, 50) : 'General Inquiry',
-                  summary: c.summary || '', transcript: c.transcript || '',
-                  timestamp: new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                  leadName: 'Lead Contact',
-                })));
+                setCalls(mapDbCallsToCalls(dbCalls as unknown as DbCall[], (dbLeads || []) as unknown as DbLead[]));
               }
             } else {
               router.push('/onboarding');
@@ -387,15 +419,9 @@ export function useDashboard() {
       const supabase = getClientSafe();
       if (supabase) {
         const { data: dbCalls } = await supabase.from('calls').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+        const { data: dbLeads } = await supabase.from('leads').select('*').eq('user_id', user.id);
         if (dbCalls) {
-          setCalls((dbCalls as unknown as DbCall[]).map((c): Call => ({
-            id: c.id, agentId: c.agent_id, caller: c.caller_phone || 'Anonymous',
-            duration: `${Math.floor(c.duration_seconds / 60)}m ${c.duration_seconds % 60}s`,
-            durationSeconds: c.duration_seconds, intent: c.summary?.substring(0, 50) ?? 'General Inquiry',
-            summary: c.summary ?? '', transcript: c.transcript ?? '',
-            timestamp: new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            leadName: 'Lead Contact',
-          })));
+          setCalls(mapDbCallsToCalls(dbCalls as unknown as DbCall[], (dbLeads || []) as unknown as DbLead[]));
         }
       }
       if (showToast) toast('Calls are up to date!', 'success');
@@ -472,7 +498,7 @@ export function useDashboard() {
       await fetch(`/api/agents/${currentAgent.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: next }) });
     } catch { /* sandbox fallback */ }
     setAgents((prev) => prev.map((a) => a.id === currentAgent.id ? { ...a, status: next } : a));
-    toast(`Receptionist is now ${next === 'paused' ? 'Paused ⏸️' : 'Active 🟢'}`, 'info');
+    toast(`Receptionist is now ${next === 'paused' ? 'Paused' : 'Active'}`, 'info');
   };
 
   const handleDeleteAgent = async () => {

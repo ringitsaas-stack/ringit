@@ -1,12 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-
-interface Toast {
-  id: string;
-  message: string;
-  type: 'success' | 'error' | 'info';
-}
+import React, { createContext, useContext, ReactNode } from 'react';
+import { toast as sonnerToast, Toaster } from 'sonner';
 
 interface ToastContextType {
   toast: (message: string, type?: 'success' | 'error' | 'info') => void;
@@ -15,8 +10,6 @@ interface ToastContextType {
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export const ToastProvider = ({ children }: { children: ReactNode }) => {
-  const [toasts, setToasts] = useState<Toast[]>([]);
-
   const cleanErrorMessage = (rawError: string): string => {
     if (!rawError) return 'An unexpected error occurred. Please try again.';
     if (
@@ -44,36 +37,20 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const toast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
-    const id = Math.random().toString();
     const processedMessage = type === 'error' ? cleanErrorMessage(message) : message;
-    setToasts((prev) => [...prev, { id, message: processedMessage, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
+    if (type === 'success') {
+      sonnerToast.success(processedMessage);
+    } else if (type === 'error') {
+      sonnerToast.error(processedMessage);
+    } else {
+      sonnerToast.info(processedMessage);
+    }
   };
 
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none">
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            className={`pointer-events-auto p-4 rounded-xl shadow-lg border flex items-center gap-3 transition-all duration-300 translate-y-0 opacity-100 animate-fade-in ${
-              t.type === 'success'
-                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
-                : t.type === 'error'
-                ? 'bg-red-500/10 border-red-500/20 text-red-500'
-                : 'bg-blue-500/10 border-blue-500/20 text-blue-500'
-            }`}
-          >
-            <span className="text-base">
-              {t.type === 'success' ? '⚡' : t.type === 'error' ? '❌' : 'ℹ️'}
-            </span>
-            <span className="text-xs font-semibold leading-normal">{t.message}</span>
-          </div>
-        ))}
-      </div>
+      <Toaster position="bottom-right" theme="dark" richColors closeButton />
     </ToastContext.Provider>
   );
 };

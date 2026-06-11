@@ -28,6 +28,7 @@ interface WizardForm {
   tone: string;
   services: string;
   leadEmail: string;
+  countryCode: string;
   areaCode: string;
   useExistingNumber: boolean;
   existingPhoneNumber: string;
@@ -138,7 +139,8 @@ export default function OnboardingPage() {
     tone: 'Warm and friendly',
     services: '',
     leadEmail: '',
-    areaCode: '415',
+    countryCode: 'US',
+    areaCode: '',
     useExistingNumber: false,
     existingPhoneNumber: '',
     existingPhoneSid: '',
@@ -198,10 +200,17 @@ export default function OnboardingPage() {
         return;
       }
     } else {
-      const areaCodeRegex = /^\d{3}$/;
-      if (!areaCodeRegex.test(wizardForm.areaCode)) {
-        toast('Preferred Twilio Area Code must be a 3-digit number (e.g. 415)', 'error');
+      const countryCodeRegex = /^[A-Z]{2}$/i;
+      if (!countryCodeRegex.test(wizardForm.countryCode)) {
+        toast('Preferred Twilio Country Code must be a 2-letter country code (e.g. US, CA, GB)', 'error');
         return;
+      }
+      if (wizardForm.areaCode.trim()) {
+        const areaCodeRegex = /^\d{3}$/;
+        if (!areaCodeRegex.test(wizardForm.areaCode)) {
+          toast('Preferred Twilio Area Code must be a 3-digit number (e.g. 415)', 'error');
+          return;
+        }
       }
     }
     setWizardStep(3);
@@ -231,7 +240,7 @@ export default function OnboardingPage() {
           'Formulating customized receptionist system instructions...',
           'Provisioning AI receptionist instance on Retell AI Gateway...',
           'Searching for available phone numbers via Twilio API...',
-          'Purchasing Twilio phone number (+1 415-961-4820)...',
+          'Purchasing Twilio phone number...',
           'Configuring Twilio voice webhook triggers for Retell routing...',
           'Initializing database transaction records and backing up configurations...',
         ];
@@ -243,7 +252,7 @@ export default function OnboardingPage() {
 
     const mockPhoneNumber = wizardForm.useExistingNumber
       ? wizardForm.existingPhoneNumber
-      : `+1 (${wizardForm.areaCode}) 961-4820`;
+      : `+${wizardForm.countryCode === 'GB' ? '44' : wizardForm.countryCode === 'AU' ? '61' : wizardForm.countryCode === 'DE' ? '49' : wizardForm.countryCode === 'FR' ? '33' : wizardForm.countryCode === 'IN' ? '91' : wizardForm.countryCode === 'NZ' ? '64' : wizardForm.countryCode === 'IE' ? '353' : wizardForm.countryCode === 'SG' ? '65' : wizardForm.countryCode === 'NL' ? '31' : wizardForm.countryCode === 'ES' ? '34' : wizardForm.countryCode === 'IT' ? '39' : '1'} (555) 961-4820`;
 
     if (user) {
       const supabase = getClientSafe();
@@ -260,6 +269,7 @@ export default function OnboardingPage() {
               tone: wizardForm.tone,
               services: wizardForm.services,
               leadEmail: wizardForm.leadEmail,
+              countryCode: wizardForm.countryCode,
               areaCode: wizardForm.areaCode,
               useExistingNumber: wizardForm.useExistingNumber,
               existingPhoneNumber: wizardForm.existingPhoneNumber,
@@ -496,15 +506,33 @@ export default function OnboardingPage() {
 
                   {!wizardForm.useExistingNumber ? (
                     <div className="flex flex-col gap-1.5 pt-2 border-t border-border/40">
-                      <label className="text-[10px]  text-muted-foreground">Preferred Twilio Area Code</label>
-                      <input
-                        type="text"
-                        maxLength={3}
-                        placeholder="415"
-                        value={wizardForm.areaCode}
-                        onChange={(e) => setWizardForm({ ...wizardForm, areaCode: e.target.value })}
-                        className="bg-card border border-border rounded-xl p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
-                      />
+                      <label className="text-[10px]  text-muted-foreground">Preferred Twilio Country</label>
+                      <select
+                        value={wizardForm.countryCode}
+                        onChange={(e) => setWizardForm({ ...wizardForm, countryCode: e.target.value, areaCode: '' })}
+                        className="bg-card border border-border rounded-xl p-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors font-medium cursor-pointer"
+                      >
+                        <option value="US">🇺🇸 United States (US)</option>
+                        <option value="CA">🇨🇦 Canada (CA)</option>
+                        <option value="GB">🇬🇧 United Kingdom (GB)</option>
+                      </select>
+
+                      {(wizardForm.countryCode === 'US' || wizardForm.countryCode === 'CA') && (
+                        <div className="flex flex-col gap-1.5 pt-3 animate-fade-in">
+                          <label className="text-[10px]  text-muted-foreground">Preferred 3-Digit Area Code (Optional)</label>
+                          <input
+                            type="text"
+                            maxLength={3}
+                            placeholder="e.g. 415"
+                            value={wizardForm.areaCode}
+                            onChange={(e) => setWizardForm({ ...wizardForm, areaCode: e.target.value })}
+                            className="bg-card border border-border rounded-xl p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors font-medium"
+                          />
+                          <span className="text-[9px] text-muted-foreground mt-0.5">
+                            Leave blank to get any random local number inside {wizardForm.countryCode === 'US' ? 'United States' : 'Canada'}.
+                          </span>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-border/40">
