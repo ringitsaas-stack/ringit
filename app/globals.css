@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html {
+  scroll-behavior: smooth;
+}
+
 :root {
   --background: #fafafa;
   --foreground: #070d24;
@@ -28,6 +32,9 @@
   --glow-accent: rgba(59, 130, 246, 0.05);
   --glass-bg: rgba(255, 255, 255, 0.8);
   --glass-border: rgba(0, 0, 0, 0.06);
+
+  --brand: 224 85% 47%;
+  --brand-foreground: 219 100% 67%;
 }
 
 @theme {
@@ -50,6 +57,36 @@
   
   --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   --animate-fade-in: fadeIn 0.5s ease-out forwards;
+  
+  --color-brand: hsl(var(--brand));
+  --color-brand-foreground: hsl(var(--brand-foreground));
+  --max-width-container: 80rem;
+  --shadow-glow: inset 0 -16px 128px 0 hsla(var(--brand-foreground) / 0.5), inset 0 -16px 32px 0 hsla(var(--brand) / 0.5);
+
+  --animate-fade-in-up: fadeInUp 0.5s ease-out forwards;
+  --animate-scale-in: scaleIn 0.5s ease-out forwards;
+
+  @keyframes fadeInUp {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes scaleIn {
+    0% {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
 }
 
 @keyframes fadeIn {
@@ -229,4 +266,32 @@ select {
   to {
     background-position: -200% 0;
   }
+}
+
+/* Custom Launch UI utilities */
+.delay-100 {
+  animation-delay: 100ms;
+}
+.delay-200 {
+  animation-delay: 200ms;
+}
+.delay-300 {
+  animation-delay: 300ms;
+}
+.delay-500 {
+  animation-delay: 500ms;
+}
+.delay-700 {
+  animation-delay: 700ms;
+}
+
+.fade-top-lg {
+  mask-image: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 1) 8rem);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 1) 8rem);
+}
+
+.animate-in {
+  animation-duration: 1000ms;
+  animation-fill-mode: forwards;
+  animation-timing-function: ease-out;
 }

@@ -34,6 +34,9 @@ export default function LandingHeader({ isLoggedIn }: LandingHeaderProps) {
         <a href="#how-it-works" className="hover:text-foreground hover:-translate-y-px transition-all duration-200">
           How It Works
         </a>
+        <a href="#verticals" className="hover:text-foreground hover:-translate-y-px transition-all duration-200">
+          Who We Serve
+        </a>
       </nav>
 
       {/* Desktop Action buttons */}
@@ -41,13 +44,7 @@ export default function LandingHeader({ isLoggedIn }: LandingHeaderProps) {
         {isLoggedIn === null ? (
           <div className="w-24 h-9 rounded-full bg-secondary animate-pulse" />
         ) : isLoggedIn ? (
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="btn-framer-primary gap-2 text-sm px-5 py-2"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-            Dashboard
-          </button>
+          <AnimatedButton href="/dashboard" label="Dashboard" />
         ) : (
           <AnimatedButton href="/auth/signup" label="Get Started Free" />
         )}
@@ -75,6 +72,7 @@ export default function LandingHeader({ isLoggedIn }: LandingHeaderProps) {
             <a href="#features" onClick={() => setIsMenuOpen(false)}>Features</a>
             <a href="#pricing" onClick={() => setIsMenuOpen(false)}>Pricing</a>
             <a href="#how-it-works" onClick={() => setIsMenuOpen(false)}>How It Works</a>
+            <a href="#verticals" onClick={() => setIsMenuOpen(false)}>Who We Serve</a>
           </nav>
           <div className="h-px bg-border/50 w-full" />
           <div className="flex flex-col gap-3">
