@@ -610,14 +610,6 @@ export default function DashboardPage() {
 
   // ─── Render ───────────────────────────────────────────────────────────────────
 
-  if (isAuthLoading || !currentAgent) {
-    return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-        <div className="w-12 h-12 rounded-full border-4 border-zinc-800 border-t-white animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background text-foreground flex font-sans transition-colors duration-300">
       <DashboardSidebar
@@ -640,12 +632,12 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-xl font-extrabold text-foreground capitalize">{dashboardTab} Room</h1>
             <p className="text-[10px] text-muted-foreground mt-0.5">
-              Receptionist controls for <strong className="text-foreground">{currentAgent.businessName}</strong>
+              Receptionist controls for <strong className="text-foreground">{currentAgent?.businessName || 'Loading...'}</strong>
             </p>
           </div>
           <button
             onClick={() => syncRetellCalls(true)}
-            disabled={isSyncing}
+            disabled={isSyncing || isAuthLoading || !currentAgent}
             className="bg-secondary text-secondary-foreground text-xs  py-2 px-4 rounded-xl hover:opacity-90 transition-all flex items-center gap-1.5 shadow-md border border-secondary/10 disabled:opacity-50"
           >
             <span className={isSyncing ? 'animate-spin inline-block' : ''}>🔄</span>
@@ -655,12 +647,19 @@ export default function DashboardPage() {
 
         {/* Scrollable Content */}
         <div className="p-8 space-y-8 max-w-6xl w-full mx-auto">
-          <StatsBar
-            currentAgent={currentAgent}
-            dynamicMinutes={dynamicMinutes}
-            dynamicLeadsCount={dynamicLeadsCount}
-            dynamicAvgDuration={dynamicAvgDuration}
-          />
+          {isAuthLoading || !currentAgent ? (
+            <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+              <div className="w-12 h-12 rounded-full border-4 border-zinc-200 border-t-foreground-blue animate-spin" />
+              <p className="text-xs text-muted-foreground font-medium animate-pulse">Loading workspace details...</p>
+            </div>
+          ) : (
+            <>
+              <StatsBar
+                currentAgent={currentAgent}
+                dynamicMinutes={dynamicMinutes}
+                dynamicLeadsCount={dynamicLeadsCount}
+                dynamicAvgDuration={dynamicAvgDuration}
+              />
 
           {dashboardTab === 'overview' && <OverviewTab agentCalls={agentCalls} />}
           {dashboardTab === 'calls'    && <CallLogsTab agentCalls={agentCalls} />}
@@ -719,6 +718,8 @@ export default function DashboardPage() {
               activePlan={billingInfo?.subscription?.plan}
             />
           )}
+        </>
+      )}
         </div>
       </main>
     </div>

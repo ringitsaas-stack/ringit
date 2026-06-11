@@ -55,7 +55,7 @@ export default function AuthCallbackPage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-5 font-sans">
       {/* Spinner */}
-      <div className="w-12 h-12 rounded-full border-4 border-border border-t-emerald-500 animate-spin" />
+      <div className="w-12 h-12 rounded-full border-4 border-border border-t-foreground-blue animate-spin" />
 
       {/* Brand */}
       <div className="flex items-center gap-2.5">
@@ -63,7 +63,7 @@ export default function AuthCallbackPage() {
           R
         </div>
         <span className=" text-base text-foreground">
-          Ringit<span className="text-emerald-500">.ai</span>
+          Ringit<span className="text-foreground-blue">.ai</span>
         </span>
       </div>
 

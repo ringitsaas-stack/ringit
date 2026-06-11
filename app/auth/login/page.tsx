@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getSupabaseClient } from '@/shared/lib/supabase-client';
 import { useToast } from '@/components/ToastProvider';
 import Link from 'next/link';
+import AuthVisualPanel from '@/components/common/AuthVisualPanel';
 
 const getClientSafe = () => {
   try {
@@ -112,101 +113,127 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans transition-colors duration-300 items-center justify-center p-6 relative">
-
-      {/* Logo */}
-      <div className="absolute top-8 left-8">
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans transition-colors duration-300 items-center justify-center p-4 md:p-6 relative">
+      
+      {/* Home Redirect logo link */}
+      <div className="absolute top-8 left-8 z-30">
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="w-8 h-8 rounded-lg bg-foreground text-background flex items-center justify-center font-extrabold text-sm shadow-md group-hover:scale-105 transition-transform">R</div>
-          <span className=" text-lg text-foreground">Ringit<span className="text-emerald-500">.ai</span></span>
+          <span className="text-lg text-foreground font-semibold">Ringit<span className="text-foreground-blue">.ai</span></span>
         </Link>
       </div>
 
-    
-      {/* Card */}
-      <div className="max-w-md w-full glass-panel p-8 rounded-2xl space-y-6 shadow-2xl animate-fade-in border border-border">
-
-        {/* Header */}
-        <div className="text-center space-y-1.5">
-          <h1 className="text-2xl font-extrabold text-foreground">Sign in to Ringit</h1>
-          <p className="text-muted-foreground text-xs font-medium">
-            Enter your credentials to manage your AI receptionists.
-          </p>
+      {/* Main 3D Panel Container */}
+      <div className="w-full relative max-w-5xl overflow-hidden flex flex-col md:flex-row shadow-2xl rounded-3xl border border-border/80 bg-white">
+        
+        {/* Visual elements from full-screen-signup.tsx */}
+        <div className="w-full h-full z-2 absolute bg-linear-to-t from-transparent to-black pointer-events-none"></div>
+        <div className="flex absolute z-2 overflow-hidden backdrop-blur-2xl pointer-events-none">
+          <div className="h-[40rem] z-2 w-[4rem] bg-linear-90 from-[#ffffff00] via-[#000000] via-[69%] to-[#ffffff30] opacity-30 overflow-hidden"></div>
+          <div className="h-[40rem] z-2 w-[4rem] bg-linear-90 from-[#ffffff00] via-[#000000] via-[69%] to-[#ffffff30]  opacity-30 overflow-hidden"></div>
+          <div className="h-[40rem] z-2 w-[4rem] bg-linear-90 from-[#ffffff00] via-[#000000] via-[69%] to-[#ffffff30]  opacity-30 overflow-hidden"></div>
+          <div className="h-[40rem] z-2 w-[4rem] bg-linear-90 from-[#ffffff00] via-[#000000] via-[69%] to-[#ffffff30]  opacity-30 overflow-hidden"></div>
+          <div className="h-[40rem] z-2 w-[4rem] bg-linear-90 from-[#ffffff00] via-[#000000] via-[69%] to-[#ffffff30]  opacity-30 overflow-hidden"></div>
+          <div className="h-[40rem] z-2 w-[4rem] bg-linear-90 from-[#ffffff00] via-[#000000] via-[69%] to-[#ffffff30]  opacity-30 overflow-hidden"></div>
         </div>
+        <div className="w-[15rem] h-[15rem] bg-foreground-blue/70 absolute z-1 rounded-full bottom-0 left-0 blur-xl"></div>
+        <div className="w-[8rem] h-[5rem] bg-white absolute z-1 rounded-full bottom-0 left-10 opacity-30 blur-lg"></div>
+        <div className="w-[8rem] h-[5rem] bg-white absolute z-1 rounded-full bottom-0 left-20 opacity-30 blur-lg"></div>
 
-        {/* ── Google Sign In Button ── */}
-        <button
-          type="button"
-          onClick={handleGoogleLogin}
-          disabled={isGoogleLoading}
-          className="w-full flex items-center justify-center gap-3 bg-card border border-border text-foreground font-semibold text-sm py-3 rounded-xl hover:bg-secondary/60 transition-all active:scale-98 disabled:opacity-60 shadow-sm"
-        >
-          {isGoogleLoading ? (
-            <span className="w-4 h-4 rounded-full border-2 border-foreground border-t-transparent animate-spin" />
-          ) : (
-            <GoogleIcon />
-          )}
-          Continue with Google
-        </button>
+        {/* Left Visual Column */}
+        <AuthVisualPanel />
 
-        {/* Divider */}
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-[10px]  text-muted-foreground uppercase tracking-wider">or sign in with email</span>
-          <div className="flex-1 h-px bg-border" />
-        </div>
-
-        {/* ── Email Form ── */}
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px]  text-muted-foreground">Email Address</label>
-            <input
-              type="email"
-              required
-              placeholder="name@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="bg-card border border-border rounded-xl p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
-            />
+        {/* Right Form Column */}
+        <div className="p-8 md:p-12 md:w-1/2 flex flex-col bg-white z-20 text-foreground justify-center">
+          <div className="flex flex-col items-start mb-6">
+            <h2 className="text-3xl font-semibold mb-2 tracking-tight text-foreground">
+              Sign In
+            </h2>
+            <p className="text-left text-muted-foreground text-xs font-medium">
+              Enter your credentials to manage your AI receptionists.
+            </p>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-center">
-              <label className="text-[10px]  text-muted-foreground">Password</label>
-              <Link href="/auth/forgot-password" className="text-[10px]  text-emerald-500 hover:underline">
-                Forgot password?
-              </Link>
-            </div>
-            <input
-              type="password"
-              required
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="bg-card border border-border rounded-xl p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
-            />
-          </div>
-
+          {/* Google login button */}
           <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-primary text-primary-foreground  text-sm py-3 rounded-xl hover:opacity-90 transition-all shadow-md flex items-center justify-center gap-2 active:scale-98 disabled:opacity-60"
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={isGoogleLoading}
+            className="w-full flex items-center justify-center gap-3 bg-card border border-border text-foreground font-semibold text-sm py-2.5 rounded-xl hover:bg-secondary/60 transition-all active:scale-98 disabled:opacity-60 shadow-sm cursor-pointer mb-5 animate-fade-in"
           >
-            {isLoading ? (
-              <span className="w-4 h-4 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
+            {isGoogleLoading ? (
+              <span className="w-4 h-4 rounded-full border-2 border-foreground border-t-transparent animate-spin" />
             ) : (
-              'Sign In ⚡'
+              <GoogleIcon />
             )}
+            Continue with Google
           </button>
-        </form>
 
-        {/* Footer link */}
-        <div className="text-center text-xs text-muted-foreground">
-          Don&apos;t have an account?{' '}
-          <Link href="/auth/signup" className="text-emerald-500  hover:underline">
-            Sign up for free
-          </Link>
+          {/* Divider */}
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex-1 h-px bg-border/60" />
+            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">or sign in with email</span>
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="email" className="text-xs text-muted-foreground font-semibold tracking-wide">
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                placeholder="name@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="bg-card border border-border rounded-xl p-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-foreground-blue transition-all"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <div className="flex justify-between items-center">
+                <label htmlFor="password" className="text-xs text-muted-foreground font-semibold tracking-wide">
+                  Password
+                </label>
+                <Link href="/auth/forgot-password" className="text-[10px] text-foreground-blue hover:underline font-semibold">
+                  Forgot password?
+                </Link>
+              </div>
+              <input
+                id="password"
+                type="password"
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="bg-card border border-border rounded-xl p-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-foreground-blue transition-all"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-foreground-blue text-white hover:bg-foreground-blue/90 text-sm py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 active:scale-98 disabled:opacity-60 cursor-pointer font-bold mt-2"
+            >
+              {isLoading ? (
+                <span className="w-4 h-4 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
+              ) : (
+                'Sign In ⚡'
+              )}
+            </button>
+          </form>
+
+          {/* Redirect to signup */}
+          <div className="text-center text-xs text-muted-foreground mt-6 font-semibold">
+            Don&apos;t have an account?{' '}
+            <Link href="/auth/signup" className="text-foreground-blue hover:underline">
+              Sign up for free
+            </Link>
+          </div>
         </div>
+
       </div>
     </div>
   );
