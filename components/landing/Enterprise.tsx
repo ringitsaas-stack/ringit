@@ -21,30 +21,23 @@ const ENTERPRISE_COLUMNS: ColumnConfig[] = [
     card: {
       title: "Human Conversations, Built to Scale",
       desc: "Serve millions of customers across telecom, retail, healthcare, travel, and hospitality. RingIT’s AI voice agents handle high call volumes 24/7 — no hiring, no training, no delays.",
-      image: "Enter_1.png",
+      image: "/Enter_1.png",
     },
   },
   {
-    type: "stacked",
-    cards: [
-      {
-        title: "Enterprise-Grade Reliability",
-        desc: "Designed for mission-critical operations, RingIT meets enterprise security, compliance, and uptime standards.",
-        image: "/Enter_2.png",
-      },
-      {
-        title: "Seamless System Integrations",
-        desc: "RingIT connects directly with your CRM tools, and internal systems to take real actions — update records, book appointments, and route callers.",
-        image: "Enter_3.png",
-      },
-    ],
+    type: "single",
+    card: {
+      title: "Seamless System Integrations",
+      desc: "We can integrate with any custom CRM based on your specific requirements. Feel free to send us an email with the details, and we'll be happy to discuss the integration options and provide a solution tailored to your needs.",
+      image: "/Enter_3.png",
+    },
   },
   {
     type: "single",
     card: {
       title: "24/7 Multilingual Support",
       desc: "We provide seamless support around the clock, across multiple languages. RingIT’s AI voice agents ensure every customer is heard and helped anytime, anywhere.",
-      image: "Enter_4.png",
+      image: "/Enter_4.png",
     },
   },
 ];
@@ -83,25 +76,27 @@ export default function LandingEnterprise() {
               return (
                 <div
                   key={cIdx}
-                  className="flex flex-col bg-card rounded-[24px] border border-border/60 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden h-full justify-between"
+                  className="flex flex-col bg-card rounded-[24px] border border-border/60 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden h-full justify-between gap-6"
                 >
-                  <div className="p-4 pb-0 space-y-3">
-                    <h3 className="text-xl font-bold text-foreground mb-1 leading-snug">{card.title}</h3>
-                    <p className="text-muted-foreground text-[13.5px] font-medium">
+                  <div className="p-6 pb-0 space-y-3">
+                    <h3 className="text-2xl font-extrabold text-foreground mb-1 leading-snug">{card.title}</h3>
+                    <p className="text-muted-foreground text-[15px] font-medium leading-relaxed">
                       {card.desc}
                     </p>
                   </div>
                   
                   {/* flex-grow image container that uses object-contain and matches the dark canyon background color */}
-                  <div className="relative flex-grow w-full mt-auto">
-                    <Image
-                      src={card.image}
-                      alt={card.title}
-                      fill
-                      sizes="(max-width: 1024px) 100vw, 380px"
-                      className="object-cover rounded-[24px] p-3 object-bottom"
-                      unoptimized={true}
-                    />
+                  <div className={`relative w-full mt-auto px-3 pb-3 ${cIdx === 1 ? 'aspect-[16/10.5]' : 'aspect-[16/13.5]'}`}>
+                    <div className="relative w-full h-full rounded-[16px] overflow-hidden">
+                      <Image
+                        src={card.image}
+                        alt={card.title}
+                        fill
+                        sizes="(max-width: 1024px) 100vw, 380px"
+                        className="object-cover object-center"
+                        unoptimized={true}
+                      />
+                    </div>
                   </div>
                 </div>
               );
