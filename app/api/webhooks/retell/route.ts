@@ -143,35 +143,23 @@ async function processWebhookEvent(
         transcript,
       });
 
-      // C. Save Lead Record
-      if (extractedLead.name !== 'Anonymous' || extractedLead.phone !== 'Not provided') {
-        await callRepo.saveLead({
-          agentId,
-          userId,
-          name: extractedLead.name,
-          phone: extractedLead.phone,
-          intent: extractedLead.intent,
-          summary: extractedLead.summary,
-        });
-
-        // D. Sync to Google Sheets Web App endpoint dynamically if configured
-        if (googleSheetUrl) {
-          try {
-            await fetch(googleSheetUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                name: extractedLead.name,
-                phone: extractedLead.phone,
-                intent: extractedLead.intent,
-                summary: extractedLead.summary,
-                timestamp: new Date().toISOString(),
-              }),
-            });
-            console.log(`Successfully pushed lead ${extractedLead.name} to Google Sheet Web App.`);
-          } catch (sheetsErr) {
-            console.error('Google Sheets webhook execution failed:', sheetsErr);
-          }
+      // C. Sync to Google Sheets Web App endpoint dynamically if configured
+      if (googleSheetUrl) {
+        try {
+          await fetch(googleSheetUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: extractedLead.name || 'Anonymous',
+              phone: callerPhone || extractedLead.phone || 'Not provided',
+              intent: extractedLead.intent || 'General Inquiry',
+              summary: extractedLead.summary || 'No details.',
+              timestamp: new Date().toISOString(),
+            }),
+          });
+          console.log(`Successfully pushed call from ${callerPhone} to Google Sheet Web App.`);
+        } catch (sheetsErr) {
+          console.error('Google Sheets webhook execution failed:', sheetsErr);
         }
       }
 

@@ -16,7 +16,11 @@ const EnvSchema = z.object({
   TWILIO_AUTH_TOKEN: z.string().min(1, 'TWILIO_AUTH_TOKEN is required'),
 
   // Anthropic Claude
-  ANTHROPIC_API_KEY: z.string().min(1, 'ANTHROPIC_API_KEY is required'),
+  ANTHROPIC_API_KEY: z.string().optional(),
+
+  // OpenAI
+  OPEN_AI_API_KEY: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
 
   // Stripe Configuration
   STRIPE_SECRET_KEY: z.string().optional(),
@@ -45,6 +49,8 @@ function loadEnv(): EnvConfig {
     TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
     TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+    OPEN_AI_API_KEY: process.env.OPEN_AI_API_KEY,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,

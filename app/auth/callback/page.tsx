@@ -88,10 +88,10 @@ async function redirectUser(
       router.push('/dashboard');
     } else {
       setStatus('Setting up your workspace...');
-      router.push('/onboarding');
+      router.push('/dashboard');
     }
   } catch {
-    // Default to onboarding on any error
-    router.push('/onboarding');
+    // Default to dashboard on any error
+    router.push('/dashboard');
   }
 }

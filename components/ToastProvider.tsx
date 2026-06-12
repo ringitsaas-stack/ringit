@@ -39,36 +39,18 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
   const toast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const processedMessage = type === 'error' ? cleanErrorMessage(message) : message;
     if (type === 'success') {
-      sonnerToast(processedMessage, {
-        style: {
-          background: '#FFFFFF',
-          color: '#0D0D0D',
-          border: '1px solid #E4E4E7',
-        },
-      });
+      sonnerToast.success(processedMessage);
     } else if (type === 'error') {
-      sonnerToast(processedMessage, {
-        style: {
-          background: '#FEF2F2',
-          color: '#EF4444',
-          border: '1px solid #FEE2E2',
-        },
-      });
+      sonnerToast.error(processedMessage);
     } else {
-      sonnerToast(processedMessage, {
-        style: {
-          background: '#0D0D0D',
-          color: '#FFFFFF',
-          border: '1px solid #27272A',
-        },
-      });
+      sonnerToast.info(processedMessage);
     }
   };
 
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <Toaster position="bottom-right" theme="dark" richColors closeButton />
+      <Toaster position="bottom-right" theme="light" richColors closeButton />
     </ToastContext.Provider>
   );
 };

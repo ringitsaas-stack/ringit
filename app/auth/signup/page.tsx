@@ -104,13 +104,13 @@ export default function SignupPage() {
           console.error('Profile insert failed:', err);
         }
         toast('Account created successfully!', 'success');
-        router.push('/onboarding');
+        router.push('/dashboard');
       }
     } else {
       // Sandbox mode
       localStorage.setItem('ringit_sandbox_user', JSON.stringify({ id: 'mock-user-123', email, fullName }));
       toast('Sandbox signup successful.', 'success');
-      router.push('/onboarding');
+      router.push('/dashboard');
     }
     setIsLoading(false);
   };

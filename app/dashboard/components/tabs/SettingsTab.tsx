@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import VersionsTab from './VersionsTab';
 import { Lock, Play, Square, Pause, Mic, Upload, Sparkles, History, ArrowRight, User, CreditCard } from 'lucide-react';
+import GoogleSheetsHelpModal from '@/components/GoogleSheetsHelpModal';
 
 interface ProcessedVoice {
   voice_id: string;
@@ -106,7 +107,14 @@ interface SettingsTabProps {
   isDeletingAgent?: boolean;
 }
 
-const TONE_OPTIONS = ['Warm and friendly', 'Professional and formal', 'Upbeat and energetic'];
+const TONE_OPTIONS = [
+  'Warm and friendly',
+  'Professional and formal',
+  'Upbeat and energetic',
+  'Calm and reassuring',
+  'Direct and concise',
+  'Empathetic and supportive'
+];
 const DEFAULT_MODELS = [
   { id: 'gpt-4o-mini', label: 'gpt-4o-mini (Recommended - Low Latency)' },
   { id: 'gpt-4o', label: 'gpt-4o (High Intelligence)' },
@@ -143,6 +151,7 @@ export default function SettingsTab({
 }: SettingsTabProps) {
 
   const [activeAgentTab, setActiveAgentTab] = React.useState<'details' | 'voice' | 'prompt' | 'danger'>('details');
+  const [isSheetsHelpOpen, setIsSheetsHelpOpen] = React.useState(false);
 
   const models = platformModels.length > 0 ? platformModels : DEFAULT_MODELS;
   const languages = platformLanguages.length > 0 ? platformLanguages : DEFAULT_LANGUAGES;
@@ -264,7 +273,16 @@ export default function SettingsTab({
               {/* Google Sheet URL */}
               <div className="flex flex-col gap-1.5 md:col-span-2 relative">
                 <div className="flex justify-between items-center">
-                  <label className="text-xs text-muted-foreground font-semibold ">Google Sheet Web App URL</label>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-muted-foreground font-semibold ">Google Sheet Web App URL</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsSheetsHelpOpen(true)}
+                      className="text-[10px] font-bold text-foreground-blue hover:underline cursor-pointer bg-foreground-blue/5 px-2 py-0.5 rounded"
+                    >
+                      How to connect? ℹ️
+                    </button>
+                  </div>
                   {activePlan === 'starter' && (
                     <span className="text-[9px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-black px-2 py-0.5 rounded tracking-wide uppercase flex items-center gap-1">
                       <Lock className="w-2.5 h-2.5" /> Pro Only
@@ -641,6 +659,9 @@ export default function SettingsTab({
               isDeployingPrompt={isDeployingPrompt}
               onDeploy={onDeploy}
               onRestore={onRestore}
+              businessName={editForm.businessName}
+              services={editForm.services}
+              tone={editForm.tone}
             />
           </div>
         )}
@@ -719,6 +740,7 @@ export default function SettingsTab({
           </div>
         )}
       </div>
+      <GoogleSheetsHelpModal isOpen={isSheetsHelpOpen} onClose={() => setIsSheetsHelpOpen(false)} />
     </div>
   );
 }

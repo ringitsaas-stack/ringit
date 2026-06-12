@@ -150,34 +150,23 @@ export async function POST(req: NextRequest) {
           transcript,
         });
 
-        // Save Lead record
-        if (extractedLead.name !== 'Anonymous' || extractedLead.phone !== 'Not provided') {
-          await callRepo.saveLead({
-            agentId: agent.id,
-            userId: agent.user_id,
-            name: extractedLead.name,
-            phone: extractedLead.phone,
-            intent: extractedLead.intent,
-            summary: extractedLead.summary,
-          });
-
-          // Sync to Google Sheets if configured
-          if (agent.google_sheet_url) {
-            try {
-              await fetch(agent.google_sheet_url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  name: extractedLead.name,
-                  phone: extractedLead.phone,
-                  intent: extractedLead.intent,
-                  summary: extractedLead.summary,
-                  timestamp: new Date().toISOString(),
-                }),
-              });
-            } catch (sheetsErr) {
-              console.error('Google Sheets sync execution failed:', sheetsErr);
-            }
+        // Sync to Google Sheets if configured
+        if (agent.google_sheet_url) {
+          try {
+            await fetch(agent.google_sheet_url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                name: extractedLead.name || 'Anonymous',
+                phone: callerPhone || extractedLead.phone || 'Not provided',
+                intent: extractedLead.intent || 'General Inquiry',
+                summary: extractedLead.summary || 'No details.',
+                timestamp: new Date().toISOString(),
+              }),
+            });
+            console.log(`Successfully pushed synced call to Google Sheet: ${agent.google_sheet_url}`);
+          } catch (sheetsErr) {
+            console.error('Google Sheets sync execution failed:', sheetsErr);
           }
         }
 

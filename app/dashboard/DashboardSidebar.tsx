@@ -97,7 +97,8 @@ export default function DashboardSidebar({
           </span>
         </div>
  
-        {/* Agent Switcher */}
+      <div className="space-y-3">
+          {/* Agent Switcher */}
         <div className="flex flex-col gap-2 relative">
           <span className="text-xs text-muted-foreground tracking-wider font-semibold">
             Active Receptionist
@@ -198,6 +199,7 @@ export default function DashboardSidebar({
             );
           })}
         </nav>
+      </div>
       </div>
  
       {/* Bottom Panel */}

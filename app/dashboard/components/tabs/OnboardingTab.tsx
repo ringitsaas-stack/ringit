@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useToast } from '@/components/ToastProvider';
 import { getSupabaseClient } from '@/shared/lib/supabase-client';
+import GoogleSheetsHelpModal from '@/components/GoogleSheetsHelpModal';
 
 // Handle Supabase Auth Client Initialization gracefully
 const getClientSafe = () => {
@@ -134,6 +135,7 @@ export default function OnboardingTab({
   );
   const [newlyCreatedPhone, setNewlyCreatedPhone] = useState('');
 
+  const [isSheetsHelpOpen, setIsSheetsHelpOpen] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [wizardForm, setWizardForm] = useState<WizardForm>({
     businessName: '',
@@ -165,7 +167,7 @@ export default function OnboardingTab({
       const res = await fetch('/api/ai/generate-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ businessName, industry })
+        body: JSON.stringify({ businessName, industry, services: wizardForm.services })
       });
       const data = await res.json();
       if (data.success) {
@@ -356,27 +358,25 @@ export default function OnboardingTab({
   };
 
   return (
-    <div className="w-full space-y-8 animate-fade-in py-6">
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-extrabold text-foreground">Let&apos;s build your AI Receptionist</h1>
+    <div className="w-full space-y-3 animate-fade-in py-2">
+      <div className="space-y-2">
+        <h1 className="text-2xl font-semibold text-foreground">Let&apos;s build your AI Receptionist</h1>
         <p className="text-muted-foreground text-sm font-medium">Follow the 3 quick steps to deploy a live Retell AI receptionist phone number.</p>
       </div>
 
-      {/* Steps Visual Tracker */}
-      <div className="flex justify-between items-center relative max-w-md mx-auto">
-        <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-border -translate-y-1/2 z-0"></div>
-        {[1, 2, 3].map((step) => (
-          <div
-            key={step}
-            className={`w-10 h-10 rounded-full flex items-center justify-center text-sm z-10 border transition-all font-bold ${
-              wizardStep >= step
-                ? 'bg-foreground-blue text-white border-foreground-blue shadow-[0_0_12px_rgba(18,72,222,0.4)]'
-                : 'bg-card text-muted-foreground border-border'
-            }`}
-          >
-            {step}
-          </div>
-        ))}
+      {/* Steps Visual Tracker - Breadcrumb Style */}
+      <div className="flex flex-wrap justify-center items-center gap-2 max-w-90 text-xs font-semibold text-muted-foreground bg-secondary/30 border border-border/40 p-2 rounded-xl">
+        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${wizardStep === 1 ? 'bg-white text-foreground-blue shadow-sm border border-border' : ''}`}>
+          <span>1. Category</span>
+        </div>
+        <div className="text-muted-foreground/30 font-light">/</div>
+        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${wizardStep === 2 ? 'bg-white text-foreground-blue shadow-sm border border-border' : ''}`}>
+          <span>2. Config</span>
+        </div>
+        <div className="text-muted-foreground/30 font-light">/</div>
+        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${wizardStep === 3 ? 'bg-white text-foreground-blue shadow-sm border border-border' : ''}`}>
+          <span>3. Service & Tone</span>
+        </div>
       </div>
 
       {/* Step Contents */}
@@ -387,35 +387,33 @@ export default function OnboardingTab({
             <p className="text-muted-foreground text-xs mt-1">This templates the primary prompt baseline mapped to Retell AI.</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[380px] overflow-y-auto pr-2 scrollbar-thin p-1">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 p-0.5">
             {ONBOARDING_VERTICALS.map((vert) => (
               <button
                 key={vert.id}
                 type="button"
                 onClick={() => setWizardForm({ ...wizardForm, industry: vert.id })}
-                className={`p-4 rounded-xl border text-left transition-all space-y-2 flex flex-col justify-between min-h-[110px] cursor-pointer ${
+                className={`p-3 rounded-xl border text-left transition-all flex items-start gap-2.5 cursor-pointer ${
                   wizardForm.industry === vert.id
                     ? 'border-foreground-blue bg-foreground-blue/5 shadow-[0_0_15px_rgba(18,72,222,0.15)] font-bold'
                     : 'border-border bg-card/30 hover:border-zinc-400 hover:bg-card/50'
                 }`}
               >
-                <div className="space-y-1">
-                  <div className="text-2xl">
-                    {vert.icon}
-                  </div>
-                  <div className="font-bold text-foreground text-sm">
+                <div className="text-xl shrink-0 mt-0.5">{vert.icon}</div>
+                <div className="min-w-0 space-y-0.5">
+                  <div className="font-bold text-foreground text-xs truncate">
                     {vert.title}
                   </div>
-                </div>
-                <div className="text-[11px] text-muted-foreground leading-snug">
-                  {vert.desc}
+                  <div className="text-[9px] text-muted-foreground leading-normal line-clamp-2">
+                    {vert.desc}
+                  </div>
                 </div>
               </button>
             ))}
           </div>
 
           {wizardForm.industry === 'Other' && (
-            <div className="flex flex-col gap-1.5 p-4 bg-card/35 border border-border/80 rounded-xl space-y-2 animate-fade-in">
+            <div className="flex flex-col gap-1.5 animate-fade-in">
               <label className="text-[10px] text-muted-foreground font-bold">Describe Custom Business Category</label>
               <input
                 type="text"
@@ -425,9 +423,6 @@ export default function OnboardingTab({
                 onChange={(e) => setWizardForm({ ...wizardForm, customIndustry: e.target.value })}
                 className="bg-card border border-border rounded-xl p-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors font-semibold"
               />
-              <span className="text-[9px] text-muted-foreground">
-                This will dynamically engineer a bespoke custom receptionist system prompt tailored exactly to your category!
-              </span>
             </div>
           )}
 
@@ -450,39 +445,57 @@ export default function OnboardingTab({
       )}
 
       {wizardStep === 2 && (
-        <div className="glass-panel p-8 rounded-2xl border border-border/60 bg-card/45 space-y-6">
+        <div className="glass-panel p-8 rounded-2xl border border-border/60 bg-card/45 space-y-2">
           <div>
-            <h2 className="text-xl text-foreground font-bold">Step 2: Business &amp; Telephony Config</h2>
+            <h2 className="text-xl text-foreground font-bold">Business &amp; Telephony Config</h2>
             <p className="text-muted-foreground text-xs mt-1">Provide business details and configure telephony routing configurations.</p>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Business Name</label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Dental Care Inc."
-                value={wizardForm.businessName}
-                onChange={(e) => setWizardForm({ ...wizardForm, businessName: e.target.value })}
-                className="bg-card border border-border rounded-xl p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors font-semibold"
-              />
+          <div className="space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                 <label className="text-xs text-muted-foreground font-semibold">Business Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Dental Care Inc."
+                  value={wizardForm.businessName}
+                  onChange={(e) => setWizardForm({ ...wizardForm, businessName: e.target.value })}
+                  className="bg-card border border-border rounded-xl p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors font-semibold"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-muted-foreground font-semibold">Alerts Forwarding Email</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="office@dentalcare.com"
+                  value={wizardForm.leadEmail}
+                  onChange={(e) => setWizardForm({ ...wizardForm, leadEmail: e.target.value })}
+                  className="bg-card border border-border rounded-xl p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors font-semibold"
+                />
+              </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Alerts Forwarding Email</label>
-              <input
-                type="email"
-                required
-                placeholder="office@dentalcare.com"
-                value={wizardForm.leadEmail}
-                onChange={(e) => setWizardForm({ ...wizardForm, leadEmail: e.target.value })}
-                className="bg-card border border-border rounded-xl p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors font-semibold"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Google Sheet Web App URL (Optional)</label>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1 group relative">
+                  <label className="text-[10px] text-muted-foreground font-bold tracking-wide">Google Sheet Web App URL (Optional)</label>
+                  <span className="cursor-help text-muted-foreground/70 hover:text-foreground text-[10.5px]">ⓘ</span>
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-0 mb-1.5 hidden group-hover:block z-50 w-64 p-2 bg-zinc-950 text-[10px] text-zinc-200 rounded-lg shadow-xl leading-normal border border-zinc-800">
+                    Automatically append customer lead details to Google Sheets in real-time. Leave blank to configure later.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsSheetsHelpOpen(true)}
+                  className="text-[10px] font-bold text-foreground-blue hover:underline cursor-pointer bg-foreground-blue/5 px-2 py-0.5 rounded"
+                >
+                  How to connect?
+                </button>
+              </div>
               <input
                 type="url"
                 placeholder="https://script.google.com/macros/s/.../exec"
@@ -490,17 +503,14 @@ export default function OnboardingTab({
                 onChange={(e) => setWizardForm({ ...wizardForm, googleSheetUrl: e.target.value })}
                 className="bg-card border border-border rounded-xl p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors font-semibold"
               />
-              <span className="text-[9px] text-muted-foreground leading-normal mt-0.5 font-medium">
-                Automatically append customer lead details to Google Sheets in real-time. Leave blank to configure later.
-              </span>
             </div>
 
             {/* Telephony Switcher */}
-            <div className="border border-border/60 bg-card/30 p-4 rounded-xl space-y-3">
+            <div className=" space-y-2">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <label className="text-xs text-foreground font-bold">Link Pre-Owned Twilio Number</label>
-                  <p className="text-[10px] text-muted-foreground max-w-xs leading-normal font-medium">
+                  <p className="text-[10px] mb-0 text-muted-foreground max-w-sm leading-normal font-medium">
                     Enable this to link a number you already purchased from your own Twilio console.
                   </p>
                 </div>
@@ -520,8 +530,8 @@ export default function OnboardingTab({
               </div>
 
               {!wizardForm.useExistingNumber ? (
-                <div className="flex flex-col gap-1.5 pt-2 border-t border-border/40">
-                  <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Preferred Twilio Country</label>
+                <div className="flex flex-col gap-1.5 ">
+                   <label className="text-xs text-muted-foreground font-semibold">Preferred Twilio Country</label>
                   <select
                     value={wizardForm.countryCode}
                     onChange={(e) => setWizardForm({ ...wizardForm, countryCode: e.target.value, areaCode: '' })}
@@ -534,7 +544,7 @@ export default function OnboardingTab({
 
                   {(wizardForm.countryCode === 'US' || wizardForm.countryCode === 'CA') && (
                     <div className="flex flex-col gap-1.5 pt-3 animate-fade-in">
-                      <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Preferred 3-Digit Area Code (Optional)</label>
+                      <label className="text-xs text-muted-foreground font-semibold">Preferred 3-Digit Area Code (Optional)</label>
                       <input
                         type="text"
                         maxLength={3}
@@ -547,9 +557,9 @@ export default function OnboardingTab({
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-border/40 animate-fade-in">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-fade-in">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Existing Twilio Phone Number</label>
+                    <label className="text-[10px] text-muted-foreground font-bold tracking-wide">Existing Twilio Phone Number</label>
                     <input
                       type="text"
                       placeholder="e.g. +14155552671"
@@ -559,7 +569,7 @@ export default function OnboardingTab({
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Twilio Phone SID (starts with PN)</label>
+                    <label className="text-[10px] text-muted-foreground font-bold tracking-wide">Twilio Phone SID (starts with PN)</label>
                     <input
                       type="text"
                       maxLength={34}
@@ -574,7 +584,7 @@ export default function OnboardingTab({
             </div>
           </div>
 
-          <div className="flex justify-between pt-4 border-t border-border/20">
+          <div className="flex justify-between pt-2 border-t border-border/20">
             <button
               onClick={() => setWizardStep(1)}
               className="border border-border text-muted-foreground font-bold text-xs px-6 py-2.5 rounded-lg hover:text-foreground hover:bg-card cursor-pointer"
@@ -601,7 +611,7 @@ export default function OnboardingTab({
           <div className="space-y-4">
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Describe Your Services</label>
+                <label className="text-xs text-muted-foreground font-semibold">Describe Your Services</label>
                 <button
                   type="button"
                   onClick={handleAIGenerate}
@@ -632,7 +642,7 @@ export default function OnboardingTab({
             </div>
 
             <div className="flex flex-col gap-1.5 relative">
-              <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Assistant Tone Profile</label>
+              <label className="text-xs text-muted-foreground font-semibold">Assistant Tone Profile</label>
               <button
                 type="button"
                 onClick={() => setIsWizardToneDropdownOpen(!isWizardToneDropdownOpen)}
@@ -648,7 +658,14 @@ export default function OnboardingTab({
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsWizardToneDropdownOpen(false)} />
                   <div className="absolute left-0 right-0 top-full mt-1.5 max-h-60 overflow-y-auto rounded-xl border border-border bg-card shadow-2xl z-50 p-1.5 scrollbar-thin animate-fade-in">
-                    {['Warm and friendly', 'Professional and formal', 'Upbeat and energetic'].map((t) => (
+                    {[
+                      'Warm and friendly',
+                      'Professional and formal',
+                      'Upbeat and energetic',
+                      'Calm and reassuring',
+                      'Direct and concise',
+                      'Empathetic and supportive'
+                    ].map((t) => (
                       <button
                         key={t}
                         type="button"
@@ -700,6 +717,7 @@ export default function OnboardingTab({
           )}
         </form>
       )}
+      <GoogleSheetsHelpModal isOpen={isSheetsHelpOpen} onClose={() => setIsSheetsHelpOpen(false)} />
     </div>
   );
 }

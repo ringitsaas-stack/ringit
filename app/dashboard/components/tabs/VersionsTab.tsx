@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
 
 interface AgentVersion {
   version: number;
@@ -17,6 +18,9 @@ interface VersionsTabProps {
   isDeployingPrompt: boolean;
   onDeploy: (promptText: string) => void;
   onRestore: (prompt: string, version: number) => void;
+  businessName?: string;
+  services?: string;
+  tone?: string;
 }
 
 export default function VersionsTab({
@@ -26,13 +30,71 @@ export default function VersionsTab({
   isDeployingPrompt,
   onDeploy,
   onRestore,
+  businessName,
+  services,
+  tone,
 }: VersionsTabProps) {
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
+
+  const handleAIGeneratePrompt = async () => {
+    if (!businessName) {
+      toast.error('Please fill in your business name in Primary Details first.');
+      return;
+    }
+
+    setIsGeneratingPrompt(true);
+    try {
+      const res = await fetch('/api/ai/generate-prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          businessName,
+          services,
+          tone,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.prompt) {
+        setEditedPrompt(data.prompt);
+        toast.success('Successfully generated custom AI receptionist system prompt!');
+      } else {
+        toast.error(data.error || 'Failed to auto-generate receptionist prompt.');
+      }
+    } catch (err) {
+      console.error('AI prompt generation error:', err);
+      toast.error('A connection error occurred during prompt generation.');
+    } finally {
+      setIsGeneratingPrompt(false);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
       {/* Prompt Editor */}
       <div className="lg:col-span-2 glass-panel p-6 rounded-2xl space-y-6 border border-border/60">
         <div className="flex justify-between items-center">
           <h3 className=" text-foreground font-semibold text-sm">System Prompt Template</h3>
+          <button
+            type="button"
+            onClick={handleAIGeneratePrompt}
+            disabled={isGeneratingPrompt}
+            className="text-[10px] font-bold text-foreground-blue hover:text-foreground-blue/80 disabled:opacity-50 transition-opacity flex items-center gap-1 cursor-pointer bg-foreground-blue/10 px-2.5 py-1 rounded-md animate-fade-in"
+          >
+            {isGeneratingPrompt ? (
+              <span className="flex items-center gap-1">
+                <svg className="animate-spin h-3 w-3 text-foreground-blue" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Generating...
+              </span>
+            ) : (
+              <span>⚡ Auto-Generate with AI</span>
+            )}
+          </button>
         </div>
 
         <textarea

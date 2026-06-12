@@ -93,10 +93,10 @@ export default function LoginPage() {
           if (resData.success && resData.agents?.length > 0) {
             router.push('/dashboard');
           } else {
-            router.push('/onboarding');
+            router.push('/dashboard');
           }
         } catch {
-          router.push('/onboarding');
+          router.push('/dashboard');
         }
       }
     } else {
