@@ -27,7 +27,7 @@ interface UserSession {
   fullName: string;
 }
  
-type DashboardTab = 'dashboard' | 'leads' | 'pricing' | 'settings';
+type DashboardTab = 'dashboard' | 'leads' | 'pricing' | 'settings' | 'profile' | 'onboarding';
  
 interface DashboardSidebarProps {
   agents: Agent[];
@@ -59,7 +59,7 @@ const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'leads', label: 'Calling Leads', icon: PhoneCall },
   { id: 'pricing', label: 'Pricing Plan', icon: CreditCard },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'settings', label: 'Agent Settings', icon: Settings },
 ] as const;
  
 export default function DashboardSidebar({
@@ -109,9 +109,11 @@ export default function DashboardSidebar({
               className="w-full flex items-center justify-between gap-2 bg-card/65 border border-border rounded-xl py-2.5 px-3 text-sm text-foreground hover:border-zinc-400 focus:outline-none transition-colors cursor-pointer"
             >
               <span className="truncate text-left font-medium">
-                {currentAgent
-                  ? `${currentAgent.businessName} (${currentAgent.industry})`
-                  : 'Select Agent'}
+                {dashboardTab === 'onboarding'
+                  ? 'Create New Agent'
+                  : currentAgent
+                    ? `${currentAgent.businessName} (${currentAgent.industry})`
+                    : 'Select Agent'}
               </span>
               <svg
                 className={`w-3.5 h-3.5 text-muted-foreground transition-transform shrink-0 ${
@@ -140,10 +142,11 @@ export default function DashboardSidebar({
                       type="button"
                       onClick={() => {
                         setSelectedAgentId(a.id);
+                        setDashboardTab('dashboard');
                         setIsAgentDropdownOpen(false);
                       }}
                       className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors flex items-center justify-between cursor-pointer ${
-                        selectedAgentId === a.id
+                        selectedAgentId === a.id && dashboardTab !== 'onboarding'
                           ? 'bg-foreground-blue/10 text-foreground-blue font-semibold'
                           : 'text-foreground hover:bg-secondary/60'
                       }`}
@@ -161,7 +164,7 @@ export default function DashboardSidebar({
                       type="button"
                       onClick={() => {
                         setIsAgentDropdownOpen(false);
-                        router.push('/onboarding');
+                        setDashboardTab('onboarding' as any);
                       }}
                       className="w-full text-left px-3 py-2 text-sm rounded-lg text-foreground-blue hover:bg-foreground-blue/5 transition-all flex items-center gap-1.5 font-semibold cursor-pointer"
                     >

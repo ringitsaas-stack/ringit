@@ -26,23 +26,31 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setIsLoading(true);
 
-    const supabase = getClientSafe();
-
-    if (supabase) {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/login`,
+    try {
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          resetUrl: `${window.location.origin}/auth/login`,
+        }),
       });
 
-      if (error) {
-        toast(error.message, 'error');
+      const data = await response.json();
+      if (data.success) {
+        if (data.sandbox) {
+          toast('Sandbox Mock: Recovery link printed to console.', 'success');
+        } else {
+          toast('Password recovery instructions emailed successfully via Resend!', 'success');
+        }
       } else {
-        toast('Password recovery instructions emailed successfully!', 'success');
+        throw new Error(data.error || 'Failed to dispatch email');
       }
-    } else {
-      // Sandbox mode mock
-      toast('Sandbox mock: Password recovery link dispatched.', 'success');
+    } catch (err: any) {
+      toast(err.message || 'An error occurred during password reset dispatch.', 'error');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (

@@ -3,13 +3,15 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useDashboard } from './hooks/useDashboard';
-import { RefreshCw, LogOut } from 'lucide-react';
+import { RefreshCw, LogOut, User } from 'lucide-react';
 
 import DashboardSidebar from '@/app/dashboard/DashboardSidebar';
 import StatsBar from '@/app/dashboard/StatsBar';
 import OverviewTab from '@/app/dashboard/components/tabs/OverviewTab';
 import SettingsTab from '@/app/dashboard/components/tabs/SettingsTab';
 import AgentsTab from '@/app/dashboard/components/tabs/AgentsTab';
+import ProfileTab from '@/app/dashboard/components/tabs/ProfileTab';
+import OnboardingTab from '@/app/dashboard/components/tabs/OnboardingTab';
 import LandingPricing from '@/components/landing/Pricing';
 
 export default function DashboardPage() {
@@ -24,6 +26,7 @@ export default function DashboardPage() {
     setDashboardTab,
     billingInfo,
     agents,
+    setAgents,
     selectedAgentId,
     setSelectedAgentId,
     calls,
@@ -32,6 +35,9 @@ export default function DashboardPage() {
     setEditedPrompt,
     isDeployingPrompt,
     isSyncing,
+    isSavingSettings,
+    isPausingAgent,
+    isDeletingAgent,
     isAgentDropdownOpen,
     setIsAgentDropdownOpen,
     isToneDropdownOpen,
@@ -100,57 +106,82 @@ export default function DashboardPage() {
 
       <main className="flex-1 flex flex-col h-screen overflow-y-auto bg-background/50">
         {/* Sticky Workspace Header */}
-        {/* Sticky Workspace Header */}
         <header className="sticky top-0 z-30 bg-background/40 backdrop-blur-md border-b border-border/60 py-4 px-8 flex justify-between items-center shrink-0">
           <div>
-            <h1 className="text-xl font-bold text-foreground capitalize">{dashboardTab}</h1>
+            <h1 className="text-xl font-bold text-foreground capitalize">
+              {dashboardTab === 'settings' 
+                ? 'Agent Settings' 
+                : dashboardTab === 'profile' 
+                  ? 'Profile Settings' 
+                  : dashboardTab === 'leads' 
+                    ? 'Calling Leads' 
+                    : dashboardTab === 'pricing'
+                      ? 'Pricing Plan'
+                      : dashboardTab === 'onboarding'
+                        ? 'Onboarding'
+                        : 'Dashboard'}
+            </h1>
           </div>
           <div className="flex items-center gap-4 relative">
-            {/* <button
-              onClick={() => syncRetellCalls(true)}
-              disabled={isSyncing || isAuthLoading || !currentAgent}
-              className="bg-secondary text-secondary-foreground text-xs py-2 px-4 rounded-xl hover:opacity-90 transition-all flex items-center gap-1.5 shadow-md border border-secondary/10 disabled:opacity-50 font-bold cursor-pointer"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${isSyncing ? 'animate-spin' : ''}`} />
-              {isSyncing ? 'Syncing...' : 'Sync Logs'}
-            </button> */}
-
             {/* Profile Avatar & Popover */}
             {user && (
-              <div className="relative">
+              <div className="flex items-center gap-3">
+                {/* Profile Settings shortcut next to profile btn */}
                 <button
-                  onClick={() => setIsProfilePopoverOpen(!isProfilePopoverOpen)}
-                  className="w-9 h-9 rounded-full bg-foreground-blue text-white hover:bg-foreground-blue/90 flex items-center justify-center text-sm font-bold border border-border shadow-sm shrink-0 cursor-pointer transition-colors"
+                  onClick={() => setDashboardTab('profile')}
+                  className={`text-xs font-bold transition-all px-3 py-1.5 rounded-lg border flex items-center gap-1 cursor-pointer ${
+                    dashboardTab === 'profile'
+                      ? 'bg-foreground-blue text-white border-foreground-blue shadow-sm'
+                      : 'bg-card text-muted-foreground border-border/60 hover:text-foreground hover:border-zinc-400'
+                  }`}
                 >
-                  {user.fullName.charAt(0).toUpperCase()}
+                  <User className="w-3.5 h-3.5" /> Profile Settings
                 </button>
 
-                {isProfilePopoverOpen && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-40" 
-                      onClick={() => setIsProfilePopoverOpen(false)} 
-                    />
-                    <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-border bg-card shadow-2xl z-50 p-4 animate-fade-in space-y-3">
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground font-medium">Signed in as</p>
-                        <p className="text-sm font-bold text-foreground truncate">{user.fullName}</p>
-                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                <div className="relative">
+                  <button
+                    onClick={() => setIsProfilePopoverOpen(!isProfilePopoverOpen)}
+                    className="w-9 h-9 rounded-full bg-foreground-blue text-white hover:bg-foreground-blue/90 flex items-center justify-center text-sm font-bold border border-border shadow-sm shrink-0 cursor-pointer transition-colors"
+                  >
+                    {user.fullName.charAt(0).toUpperCase()}
+                  </button>
+
+                  {isProfilePopoverOpen && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={() => setIsProfilePopoverOpen(false)} 
+                      />
+                      <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-border bg-card shadow-2xl z-50 p-4 animate-fade-in space-y-3">
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground font-medium">Signed in as</p>
+                          <p className="text-sm font-bold text-foreground truncate">{user.fullName}</p>
+                          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                        </div>
+                        <div className="border-t border-border pt-2.5 space-y-2">
+                          <button
+                            onClick={() => {
+                              setIsProfilePopoverOpen(false);
+                              setDashboardTab('profile');
+                            }}
+                            className="w-full text-center text-xs font-bold bg-card border border-border text-muted-foreground hover:text-foreground px-3 py-2 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                          >
+                            View Profile Settings
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsProfilePopoverOpen(false);
+                              handleSignOut();
+                            }}
+                            className="w-full text-center text-xs uppercase text-red-500 hover:text-white bg-red-500/10 hover:bg-red-500 px-3 py-2 rounded-lg transition-all border border-red-500/20 tracking-wider font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            Sign Out <LogOut className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="border-t border-border pt-2.5">
-                        <button
-                          onClick={() => {
-                            setIsProfilePopoverOpen(false);
-                            handleSignOut();
-                          }}
-                          className="w-full text-center text-xs uppercase text-red-500 hover:text-white bg-red-500/10 hover:bg-red-500 px-3 py-2 rounded-lg transition-all border border-red-500/20 tracking-wider font-bold flex items-center justify-center gap-1.5 cursor-pointer"
-                        >
-                          Sign Out <LogOut className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -158,7 +189,7 @@ export default function DashboardPage() {
 
         {/* Scrollable Content */}
         <div className="p-8 space-y-8 w-full mx-auto">
-          {isAuthLoading || !currentAgent ? (
+          {isAuthLoading ? (
             dashboardTab === 'pricing' ? (
               <div className="space-y-8 animate-pulse">
                 {/* Header copy placeholder */}
@@ -271,22 +302,62 @@ export default function DashboardPage() {
             <>
               {dashboardTab === 'dashboard' && (
                 <div className="space-y-8">
-                  <StatsBar
-                    totalAgents={agents.length}
-                    maxAgents={billingInfo?.subscription?.max_agents || 1}
-                    minutesUsed={billingInfo?.usage?.minutes_used ?? 0}
-                    maxMinutes={billingInfo?.subscription?.max_minutes ?? 100}
-                    totalLeads={calls.filter(c => c.leadName && c.leadName !== 'Lead Contact').length || dynamicLeadsCount}
-                    avgDuration={dynamicAvgDuration}
-                  />
-                  <OverviewTab
-                    agents={agents}
-                    selectedAgentId={selectedAgentId}
-                    setSelectedAgentId={setSelectedAgentId}
+                  {currentAgent ? (
+                    <>
+                      <StatsBar
+                        totalAgents={agents.length}
+                        maxAgents={billingInfo?.subscription?.max_agents || 1}
+                        minutesUsed={billingInfo?.usage?.minutes_used ?? 0}
+                        maxMinutes={billingInfo?.subscription?.max_minutes ?? 100}
+                        totalLeads={calls.filter(c => c.leadName && c.leadName !== 'Lead Contact').length || dynamicLeadsCount}
+                        avgDuration={dynamicAvgDuration}
+                      />
+                      <OverviewTab
+                        agents={agents}
+                        selectedAgentId={selectedAgentId}
+                        setSelectedAgentId={setSelectedAgentId}
+                        setDashboardTab={setDashboardTab}
+                        onNewAgentClick={() => setDashboardTab('onboarding')}
+                        agentCalls={agentCalls}
+                        allCalls={calls}
+                      />
+                    </>
+                  ) : (
+                    <div className="glass-panel p-10 rounded-2xl border border-border/60 bg-card/45 text-center space-y-5 max-w-md mx-auto animate-fade-in-up">
+                      <div className="text-5xl">👋</div>
+                      <div className="space-y-2">
+                        <h3 className="text-xl font-extrabold text-foreground">Welcome to Ringit.ai</h3>
+                        <p className="text-muted-foreground text-xs font-medium leading-relaxed">Let&apos;s provision your first AI telephone receptionist in just a few clicks.</p>
+                      </div>
+                      <button
+                        onClick={() => setDashboardTab('onboarding')}
+                        className="bg-foreground-blue text-white text-xs font-bold px-6 py-3 rounded-xl hover:bg-foreground-blue/90 transition-all shadow-md hover:shadow-[0_0_12px_rgba(18,72,222,0.3)] cursor-pointer"
+                      >
+                        Create Receptionist ⚡
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {dashboardTab === 'onboarding' && (
+                <div className="flex justify-center w-full">
+                  <OnboardingTab
+                    user={user}
                     setDashboardTab={setDashboardTab}
-                    onNewAgentClick={() => router.push('/onboarding')}
-                    agentCalls={agentCalls}
-                    allCalls={calls}
+                    setAgents={setAgents}
+                    setSelectedAgentId={setSelectedAgentId}
+                    fetchBillingInfo={async (userId) => {
+                      if (user?.id) {
+                        try {
+                          const res = await fetch(`/api/billing?userId=${userId}`);
+                          const data = await res.json();
+                          if (data.success) {
+                            // Fetch billing info handler update if hooks logic updates it
+                          }
+                        } catch {}
+                      }
+                    }}
                   />
                 </div>
               )}
@@ -303,55 +374,82 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {dashboardTab === 'settings' && (
-                <SettingsTab
-                  editForm={editForm}
-                  setEditForm={setEditForm}
-                  onSubmit={handleEditAgent}
-                  onTogglePause={toggleAgentPause}
-                  onDeleteAgent={handleDeleteAgent}
-                  agentStatus={currentAgent.status}
-                  platformVoices={platformVoices}
-                  customClonedVoices={customClonedVoices}
-                  platformLanguages={platformLanguages}
-                  platformModels={platformModels}
-                  playingVoiceId={playingVoiceId}
-                  voiceGenderFilter={voiceGenderFilter}
-                  voiceAccentFilter={voiceAccentFilter}
-                  voiceSearchQuery={voiceSearchQuery}
-                  setVoiceGenderFilter={setVoiceGenderFilter}
-                  setVoiceAccentFilter={setVoiceAccentFilter}
-                  setVoiceSearchQuery={setVoiceSearchQuery}
-                  onPlayVoice={playVoicePreview}
-                  isToneDropdownOpen={isToneDropdownOpen}
-                  setIsToneDropdownOpen={setIsToneDropdownOpen}
-                  isLlmDropdownOpen={isLlmDropdownOpen}
-                  setIsLlmDropdownOpen={setIsLlmDropdownOpen}
-                  isLangDropdownOpen={isLangDropdownOpen}
-                  setIsLangDropdownOpen={setIsLangDropdownOpen}
-                  isGenderDropdownOpen={isGenderDropdownOpen}
-                  setIsGenderDropdownOpen={setIsGenderDropdownOpen}
-                  isAccentDropdownOpen={isAccentDropdownOpen}
-                  setIsAccentDropdownOpen={setIsAccentDropdownOpen}
-                  isRecording={isRecording}
-                  audioBlob={audioBlob}
-                  audioUrl={audioUrl}
-                  isCloning={isCloning}
-                  recordingSeconds={recordingSeconds}
-                  clonedVoiceName={clonedVoiceName}
-                  setClonedVoiceName={setClonedVoiceName}
-                  onStartRecording={startRecording}
-                  onStopRecording={stopRecording}
-                  onVoiceUpload={handleVoiceUpload}
-                  onCloneVoice={cloneAndApplyVoice}
+              {dashboardTab === 'profile' && (
+                <ProfileTab
+                  user={user}
+                  billingInfo={billingInfo}
                   activePlan={billingInfo?.subscription?.plan}
-                  editedPrompt={editedPrompt}
-                  setEditedPrompt={setEditedPrompt}
-                  versions={versions}
-                  isDeployingPrompt={isDeployingPrompt}
-                  onDeploy={deployPromptVersion}
-                  onRestore={(prompt, ver) => { setEditedPrompt(prompt); toast(`Restored Version ${ver}`, 'success'); }}
                 />
+              )}
+
+              {dashboardTab === 'settings' && (
+                currentAgent ? (
+                  <SettingsTab
+                    editForm={editForm}
+                    setEditForm={setEditForm}
+                    onSubmit={handleEditAgent}
+                    onTogglePause={toggleAgentPause}
+                    onDeleteAgent={handleDeleteAgent}
+                    agentStatus={currentAgent.status}
+                    platformVoices={platformVoices}
+                    customClonedVoices={customClonedVoices}
+                    platformLanguages={platformLanguages}
+                    platformModels={platformModels}
+                    playingVoiceId={playingVoiceId}
+                    voiceGenderFilter={voiceGenderFilter}
+                    voiceAccentFilter={voiceAccentFilter}
+                    voiceSearchQuery={voiceSearchQuery}
+                    setVoiceGenderFilter={setVoiceGenderFilter}
+                    setVoiceAccentFilter={setVoiceAccentFilter}
+                    setVoiceSearchQuery={setVoiceSearchQuery}
+                    onPlayVoice={playVoicePreview}
+                    isToneDropdownOpen={isToneDropdownOpen}
+                    setIsToneDropdownOpen={setIsToneDropdownOpen}
+                    isLlmDropdownOpen={isLlmDropdownOpen}
+                    setIsLlmDropdownOpen={setIsLlmDropdownOpen}
+                    isLangDropdownOpen={isLangDropdownOpen}
+                    setIsLangDropdownOpen={setIsLangDropdownOpen}
+                    isGenderDropdownOpen={isGenderDropdownOpen}
+                    setIsGenderDropdownOpen={setIsGenderDropdownOpen}
+                    isAccentDropdownOpen={isAccentDropdownOpen}
+                    setIsAccentDropdownOpen={setIsAccentDropdownOpen}
+                    isRecording={isRecording}
+                    audioBlob={audioBlob}
+                    audioUrl={audioUrl}
+                    isCloning={isCloning}
+                    recordingSeconds={recordingSeconds}
+                    clonedVoiceName={clonedVoiceName}
+                    setClonedVoiceName={setClonedVoiceName}
+                    onStartRecording={startRecording}
+                    onStopRecording={stopRecording}
+                    onVoiceUpload={handleVoiceUpload}
+                    onCloneVoice={cloneAndApplyVoice}
+                    activePlan={billingInfo?.subscription?.plan}
+                    editedPrompt={editedPrompt}
+                    setEditedPrompt={setEditedPrompt}
+                    versions={versions}
+                    isDeployingPrompt={isDeployingPrompt}
+                    onDeploy={deployPromptVersion}
+                    onRestore={(prompt, ver) => { setEditedPrompt(prompt); toast(`Restored Version ${ver}`, 'success'); }}
+                    user={user}
+                    billingInfo={billingInfo}
+                    isSavingSettings={isSavingSettings}
+                    isPausingAgent={isPausingAgent}
+                    isDeletingAgent={isDeletingAgent}
+                  />
+                ) : (
+                  <div className="glass-panel p-8 rounded-2xl border border-border/60 bg-card/45 text-center space-y-4 max-w-md mx-auto animate-fade-in-up">
+                    <div className="text-4xl">🤖</div>
+                    <h3 className="text-lg font-bold text-foreground">No Receptionist Configured</h3>
+                    <p className="text-xs text-muted-foreground">You don&apos;t have any active AI receptionists yet. Build one to access settings.</p>
+                    <button
+                      onClick={() => setDashboardTab('onboarding')}
+                      className="bg-foreground-blue text-white text-xs font-bold px-4 py-2.5 rounded-lg hover:bg-foreground-blue/90 transition-all cursor-pointer"
+                    >
+                      Create AI Receptionist
+                    </button>
+                  </div>
+                )
               )}
             </>
           )}

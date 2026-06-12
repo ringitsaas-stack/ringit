@@ -1,11 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { getSupabaseClient } from '@/shared/lib/supabase-client';
+import React, { useState } from 'react';
 import { useToast } from '@/components/ToastProvider';
-import Link from 'next/link';
-import DashboardSidebar from '@/app/dashboard/DashboardSidebar';
+import { getSupabaseClient } from '@/shared/lib/supabase-client';
 
 // Handle Supabase Auth Client Initialization gracefully
 const getClientSafe = () => {
@@ -16,12 +13,6 @@ const getClientSafe = () => {
     return null;
   }
 };
-
-interface UserSession {
-  id: string;
-  email: string;
-  fullName: string;
-}
 
 interface WizardForm {
   businessName: string;
@@ -119,12 +110,22 @@ const ONBOARDING_VERTICALS = [
   },
 ];
 
-export default function OnboardingPage() {
-  const router = useRouter();
-  const { toast } = useToast();
+interface OnboardingTabProps {
+  user: any;
+  setDashboardTab: (tab: any) => void;
+  setAgents: React.Dispatch<React.SetStateAction<any[]>>;
+  setSelectedAgentId: (id: string) => void;
+  fetchBillingInfo: (userId: string) => void;
+}
 
-  const [user, setUser] = useState<UserSession | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
+export default function OnboardingTab({
+  user,
+  setDashboardTab,
+  setAgents,
+  setSelectedAgentId,
+  fetchBillingInfo,
+}: OnboardingTabProps) {
+  const { toast } = useToast();
   const [wizardStep, setWizardStep] = useState<number>(1);
   const [isWizardToneDropdownOpen, setIsWizardToneDropdownOpen] = useState(false);
   const [isProvisioning, setIsProvisioning] = useState(false);
@@ -132,12 +133,6 @@ export default function OnboardingPage() {
     'Formulating system prompts and provisioning telephony voice channels...'
   );
   const [newlyCreatedPhone, setNewlyCreatedPhone] = useState('');
-  const [selectedPlan, setSelectedPlan] = useState<'starter' | 'pro' | 'agency' | null>(null);
-
-  // States for embedded dashboard mode
-  const [agents, setAgents] = useState<any[]>([]);
-  const [billingInfo, setBillingInfo] = useState<any>(null);
-  const [isAgentDropdownOpen, setIsAgentDropdownOpen] = useState(false);
 
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [wizardForm, setWizardForm] = useState<WizardForm>({
@@ -145,7 +140,7 @@ export default function OnboardingPage() {
     industry: 'Auto Repair',
     tone: 'Warm and friendly',
     services: '',
-    leadEmail: '',
+    leadEmail: user?.email || '',
     countryCode: 'US',
     areaCode: '',
     useExistingNumber: false,
@@ -190,71 +185,6 @@ export default function OnboardingPage() {
       setIsGeneratingAI(false);
     }
   };
-
-  // Verify authentication session and load user records
-  useEffect(() => {
-    const checkSession = async () => {
-      const supabase = getClientSafe();
-      if (supabase) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const userObj = {
-            id: session.user.id,
-            email: session.user.email || '',
-            fullName: session.user.user_metadata?.full_name || 'Valued Partner',
-          };
-          setUser(userObj);
-
-          // Fetch existing agents
-          try {
-            const res = await fetch(`/api/agents?userId=${session.user.id}`);
-            const resData = await res.json();
-            if (resData.success && resData.agents?.length > 0) {
-              const mapped = resData.agents.map((a: any) => ({
-                id: a.id,
-                businessName: a.business_name,
-                industry: a.industry,
-                status: a.status,
-              }));
-              setAgents(mapped);
-            }
-          } catch (err) {
-            console.error('Error fetching existing agents in onboarding:', err);
-          }
-
-          // Fetch billing info
-          try {
-            const res = await fetch(`/api/billing?userId=${session.user.id}`);
-            const resData = await res.json();
-            if (resData.success) {
-              setBillingInfo(resData);
-            }
-          } catch (err) {
-            console.error('Error fetching billing in onboarding:', err);
-          }
-        } else {
-          router.push('/auth/login');
-        }
-      } else {
-        const localUser = localStorage.getItem('ringit_sandbox_user');
-        if (localUser) {
-          const parsed = JSON.parse(localUser);
-          setUser(parsed);
-          
-          // Sandbox default mock agent setup if available
-          setAgents([{ id: 'mock-agent-1', businessName: 'Dental Care Inc.', industry: 'Dental', status: 'active' }]);
-          setBillingInfo({
-            subscription: { plan: 'pro', status: 'active', max_agents: 5, max_minutes: 500 },
-            usage: { agents_count: 1, minutes_used: 12.5, lifetime_minutes: 12.5 }
-          });
-        } else {
-          router.push('/auth/login');
-        }
-      }
-      setIsAuthLoading(false);
-    };
-    checkSession();
-  }, [router]);
 
   const validateStep2 = () => {
     if (!wizardForm.businessName.trim()) {
@@ -304,7 +234,6 @@ export default function OnboardingPage() {
     }
 
     setIsProvisioning(true);
-    setWizardStep(4);
 
     const statuses = wizardForm.useExistingNumber
       ? [
@@ -362,11 +291,30 @@ export default function OnboardingPage() {
           if (data.success) {
             const returnedPhone = data.phone?.twilio_phone_number || data.phoneNumber || mockPhoneNumber;
             setNewlyCreatedPhone(returnedPhone);
-            toast('Successfully saved and provisioned to Supabase database!', 'success');
+            
+            // Append agent to local dashboard state
+            const newAgent = {
+              id: data.agentId || data.agent?.id || Math.random().toString(),
+              businessName: wizardForm.businessName,
+              industry: wizardForm.industry === 'Other' ? wizardForm.customIndustry : wizardForm.industry,
+              tone: wizardForm.tone,
+              services: wizardForm.services,
+              leadEmail: wizardForm.leadEmail,
+              phoneNumber: returnedPhone,
+              status: 'active' as const,
+              voiceId: 'openai-Alloy',
+              llmModel: 'gpt-4o-mini',
+              language: 'English (US)',
+            };
+            setAgents((prev) => [...prev, newAgent]);
+            setSelectedAgentId(newAgent.id);
+            fetchBillingInfo(user.id);
+
+            toast('Successfully saved and provisioned new receptionist!', 'success');
           } else {
             setIsProvisioning(false);
             setWizardStep(3);
-            toast(data.error || 'Failed to save active agent record to Supabase database.', 'error');
+            toast(data.error || 'Failed to save active agent record to Supabase.', 'error');
             return;
           }
         } catch (err) {
@@ -377,8 +325,23 @@ export default function OnboardingPage() {
           return;
         }
       } else {
-        // Mock success in sandbox mode
+        // Sandbox mode
         setNewlyCreatedPhone(mockPhoneNumber);
+        const newAgent = {
+          id: 'sandbox-mock-' + Math.random(),
+          businessName: wizardForm.businessName,
+          industry: wizardForm.industry === 'Other' ? wizardForm.customIndustry : wizardForm.industry,
+          tone: wizardForm.tone,
+          services: wizardForm.services,
+          leadEmail: wizardForm.leadEmail,
+          phoneNumber: mockPhoneNumber,
+          status: 'active' as const,
+          voiceId: 'openai-Alloy',
+          llmModel: 'gpt-4o-mini',
+          language: 'English (US)',
+        };
+        setAgents((prev) => [...prev, newAgent]);
+        setSelectedAgentId(newAgent.id);
         toast('Agent provisioned successfully (Simulation Sandbox).', 'success');
       }
     } else {
@@ -389,41 +352,20 @@ export default function OnboardingPage() {
     }
 
     setIsProvisioning(false);
+    setDashboardTab('dashboard');
   };
 
-  const handlePlanSelection = async (plan: 'starter' | 'pro' | 'agency') => {
-    setSelectedPlan(plan);
-    toast(`Successfully subscribed to ${plan} plan!`, 'success');
-    router.push('/dashboard');
-  };
-
-  const handleSignOut = async () => {
-    const supabase = getClientSafe();
-    if (supabase) await supabase.auth.signOut();
-    else localStorage.removeItem('ringit_sandbox_user');
-    toast('Signed out successfully.', 'info');
-    router.push('/auth/login');
-  };
-
-  if (isAuthLoading) {
-    return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-        <div className="w-12 h-12 rounded-full border-4 border-zinc-800 border-t-white animate-spin"></div>
-      </div>
-    );
-  }
-
-  const renderWizardContent = () => (
-    <div className={`${agents.length > 0 ? 'w-full max-w-3xl' : 'max-w-2xl w-full'} space-y-8 animate-fade-in py-6`}>
+  return (
+    <div className="w-full space-y-8 animate-fade-in py-6">
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-extrabold text-foreground">Let&apos;s build your AI Receptionist</h1>
-        <p className="text-muted-foreground text-sm font-medium">Follow the 4 quick steps to deploy a live Retell AI receptionist phone number.</p>
+        <p className="text-muted-foreground text-sm font-medium">Follow the 3 quick steps to deploy a live Retell AI receptionist phone number.</p>
       </div>
 
       {/* Steps Visual Tracker */}
       <div className="flex justify-between items-center relative max-w-md mx-auto">
         <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-border -translate-y-1/2 z-0"></div>
-        {[1, 2, 3, 4].map((step) => (
+        {[1, 2, 3].map((step) => (
           <div
             key={step}
             className={`w-10 h-10 rounded-full flex items-center justify-center text-sm z-10 border transition-all font-bold ${
@@ -437,11 +379,11 @@ export default function OnboardingPage() {
         ))}
       </div>
 
-      {/* Steps Content cards */}
+      {/* Step Contents */}
       {wizardStep === 1 && (
         <div className="glass-panel p-8 rounded-2xl border border-border/60 bg-card/45 space-y-6">
           <div>
-            <h2 className="text-xl text-foreground font-bold">Step 1: Select Business Category</h2>
+            <h2 className="text-xl text-foreground font-bold">Select Business Category</h2>
             <p className="text-muted-foreground text-xs mt-1">This templates the primary prompt baseline mapped to Retell AI.</p>
           </div>
 
@@ -553,13 +495,13 @@ export default function OnboardingPage() {
               </span>
             </div>
 
-            {/* Telephony Option Switcher */}
+            {/* Telephony Switcher */}
             <div className="border border-border/60 bg-card/30 p-4 rounded-xl space-y-3">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <label className="text-xs text-foreground font-bold">Link Pre-Owned Twilio Number</label>
                   <p className="text-[10px] text-muted-foreground max-w-xs leading-normal font-medium">
-                    Enable this to link a number you already purchased from your own Twilio console. Saves credit and bypasses trial restrictions!
+                    Enable this to link a number you already purchased from your own Twilio console.
                   </p>
                 </div>
                 <button
@@ -601,9 +543,6 @@ export default function OnboardingPage() {
                         onChange={(e) => setWizardForm({ ...wizardForm, areaCode: e.target.value })}
                         className="bg-card border border-border rounded-xl p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors font-semibold"
                       />
-                      <span className="text-[9px] text-muted-foreground mt-0.5">
-                        Leave blank to get any random local number inside {wizardForm.countryCode === 'US' ? 'United States' : 'Canada'}.
-                      </span>
                     </div>
                   )}
                 </div>
@@ -748,130 +687,19 @@ export default function OnboardingPage() {
               Build &amp; Launch AI Agent
             </button>
           </div>
+          {isProvisioning && (
+            <div className="fixed inset-0 z-50 bg-background/60 backdrop-blur-md flex items-center justify-center animate-fade-in">
+              <div className="glass-panel p-10 rounded-2xl border border-border bg-card/65 flex flex-col items-center justify-center text-center space-y-6 max-w-sm w-full mx-4 shadow-2xl">
+                <div className="w-12 h-12 rounded-full border-4 border-zinc-800 border-t-foreground-blue animate-spin"></div>
+                <div className="space-y-2">
+                  <h3 className="text-lg text-foreground font-bold">Launching Infrastructure</h3>
+                  <p className="text-muted-foreground text-xs animate-pulse font-medium">{provisioningStatus}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </form>
       )}
-
-      {wizardStep === 4 && (
-        <div className="glass-panel p-10 rounded-2xl border border-border/60 bg-card/45 flex flex-col items-center justify-center text-center space-y-6 min-h-[350px]">
-          {isProvisioning ? (
-            <>
-              <div className="w-12 h-12 rounded-full border-4 border-zinc-850 border-t-foreground-blue animate-spin"></div>
-              <div className="space-y-2">
-                <h3 className="text-lg text-foreground font-bold">Provisioning AI Infrastructure</h3>
-                <p className="text-muted-foreground text-xs animate-pulse max-w-sm font-medium">{provisioningStatus}</p>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="w-16 h-16 rounded-full bg-foreground-blue/10 border border-foreground-blue/30 flex items-center justify-center text-3xl shadow-lg animate-bounce">
-                🎉
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-2xl text-foreground font-extrabold">Your AI Receptionist is Ready!</h3>
-                <p className="text-muted-foreground text-xs max-w-sm font-medium">We successfully bought a Twilio number and registered the Retell agent.</p>
-              </div>
-
-              <div className="bg-card border border-border p-4 rounded-xl max-w-xs w-full">
-                <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wide">Live Phone Number</div>
-                <div className="text-xl text-foreground-blue mt-1 font-extrabold">{newlyCreatedPhone}</div>
-              </div>
-
-              <button
-                onClick={() => {
-                  if (agents.length > 0) {
-                    router.push('/dashboard');
-                  } else {
-                    handlePlanSelection('pro');
-                  }
-                }}
-                className="bg-foreground-blue text-white font-semibold text-sm px-6 py-2.5 rounded-lg hover:bg-foreground-blue/90 transition-all shadow-md cursor-pointer animate-fade-in"
-              >
-                Continue to Dashboard ⚡
-              </button>
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
-
-  // If user has existing agents, show onboarding wizard inside the Dashboard layout
-  if (agents.length > 0) {
-    return (
-      <div className="min-h-screen bg-background text-foreground flex font-sans transition-colors duration-300">
-        <DashboardSidebar
-          agents={agents}
-          selectedAgentId=""
-          currentAgent={undefined}
-          user={user}
-          dashboardTab="dashboard"
-          isAgentDropdownOpen={isAgentDropdownOpen}
-          setIsAgentDropdownOpen={setIsAgentDropdownOpen}
-          setSelectedAgentId={() => {
-            router.push('/dashboard');
-          }}
-          setDashboardTab={(tab) => {
-            localStorage.setItem('ringit_dashboard_tab', tab);
-            router.push('/dashboard');
-          }}
-          onSignOut={handleSignOut}
-          billingInfo={billingInfo}
-        />
-
-        <main className="flex-1 flex flex-col h-screen overflow-y-auto bg-background/50">
-          {/* Sticky Workspace Header */}
-          <header className="sticky top-0 z-30 bg-background/40 backdrop-blur-md border-b border-border/60 py-4 px-8 flex justify-between items-center shrink-0">
-            <div>
-              <h1 className="text-xl font-bold text-foreground capitalize">
-                Add New AI Receptionist
-              </h1>
-            </div>
-            <div className="flex items-center gap-4 relative">
-              {user && (
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => {
-                      localStorage.setItem('ringit_dashboard_tab', 'profile');
-                      router.push('/dashboard');
-                    }}
-                    className="text-xs font-bold transition-all px-3 py-1.5 rounded-lg border flex items-center gap-1 cursor-pointer bg-card text-muted-foreground border-border/60 hover:text-foreground hover:border-zinc-400"
-                  >
-                    Profile Settings
-                  </button>
-                  <button
-                    onClick={handleSignOut}
-                    className="w-9 h-9 rounded-full bg-foreground-blue text-white hover:bg-foreground-blue/90 flex items-center justify-center text-sm font-bold border border-border shadow-sm shrink-0 cursor-pointer transition-colors"
-                  >
-                    {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
-                  </button>
-                </div>
-              )}
-            </div>
-          </header>
-
-          {/* Embedded scroll container */}
-          <div className="p-8 space-y-8 w-full mx-auto flex items-center justify-center min-h-[calc(100vh-73px)]">
-            {renderWizardContent()}
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  // Otherwise, render full screen onboarding for new users
-  return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans transition-colors duration-300 items-center justify-center p-6 relative bg-gradient-to-tr from-background via-background/95 to-foreground-blue/5">
-      {/* Header / Logo */}
-      <div className="absolute top-8 left-8 flex items-center gap-3">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-foreground text-background flex items-center justify-center shadow-md font-bold">
-            R
-          </div>
-          <span className="font-semibold text-lg text-foreground">Ringit<span className="text-foreground-blue">.ai</span></span>
-        </Link>
-      </div>
-
-      {renderWizardContent()}
     </div>
   );
 }

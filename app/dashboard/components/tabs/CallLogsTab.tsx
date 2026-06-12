@@ -135,7 +135,7 @@ export default function CallLogsTab({ agentCalls }: CallLogsTabProps) {
       {/* Filters Row */}
       <div className="flex flex-wrap gap-4 bg-muted/20 p-4 rounded-xl border border-border/40">
         <div className="flex-1 min-w-[200px] flex flex-col gap-1.5">
-          <label className="text-[10px] text-muted-foreground font-bold ">Search Call Details</label>
+          <label className="text-xs text-muted-foreground font-semibold ">Search Call Details</label>
           <input
             type="text"
             placeholder="Search name, phone, intent, or summary..."
@@ -145,7 +145,7 @@ export default function CallLogsTab({ agentCalls }: CallLogsTabProps) {
           />
         </div>
         <div className="w-48 flex flex-col gap-1.5">
-          <label className="text-[10px] text-muted-foreground font-bold">Filter By Date</label>
+          <label className="text-xs text-muted-foreground font-semibold">Filter By Date</label>
           <input
             type="date"
             value={dateQuery}

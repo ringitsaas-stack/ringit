@@ -59,6 +59,7 @@ export interface UserSession {
   id: string;
   email: string;
   fullName: string;
+  provider?: string;
 }
 
 export interface DbAgent {
@@ -100,17 +101,8 @@ export interface DbLead {
   created_at: string;
 }
 
-const mapDbCallsToCalls = (dbCalls: DbCall[], dbLeads: DbLead[]): Call[] => {
-  const leadsMap = new Map();
-  if (dbLeads) {
-    dbLeads.forEach(l => {
-      if (l.phone) {
-        leadsMap.set(`${l.agent_id}_${l.phone}`, l);
-      }
-    });
-  }
+const mapDbCallsToCalls = (dbCalls: DbCall[]): Call[] => {
   return dbCalls.map((c): Call => {
-    const matchedLead = leadsMap.get(`${c.agent_id}_${c.caller_phone}`);
     const dateObj = new Date(c.created_at);
     return {
       id: c.id,
@@ -118,12 +110,12 @@ const mapDbCallsToCalls = (dbCalls: DbCall[], dbLeads: DbLead[]): Call[] => {
       caller: c.caller_phone || 'Anonymous',
       duration: `${Math.floor(c.duration_seconds / 60)}m ${c.duration_seconds % 60}s`,
       durationSeconds: c.duration_seconds,
-      intent: matchedLead?.intent || 'General Inquiry',
-      summary: c.summary || matchedLead?.summary || 'No details.',
+      intent: 'General Inquiry',
+      summary: c.summary || 'No details.',
       transcript: c.transcript ?? '',
       timestamp: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       date: dateObj.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }),
-      leadName: matchedLead?.name || 'Anonymous',
+      leadName: 'Anonymous',
     };
   });
 };
@@ -134,7 +126,7 @@ export interface DbAgentVersion {
   config?: { voiceId?: string; tone?: string; services?: string; leadEmail?: string; llmModel?: string; language?: string };
 }
 
-export type DashboardTab = 'dashboard' | 'leads' | 'pricing' | 'settings';
+export type DashboardTab = 'dashboard' | 'leads' | 'pricing' | 'settings' | 'profile' | 'onboarding';
 
 // ─── Supabase safe getter ──────────────────────────────────────────────────────
 
@@ -157,6 +149,25 @@ export function useDashboard() {
   const [user, setUser] = useState<UserSession | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [dashboardTab, setDashboardTab] = useState<DashboardTab>('dashboard');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ringit_dashboard_tab');
+      if (saved) {
+        setDashboardTab(saved as DashboardTab);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ringit_dashboard_tab', dashboardTab);
+    }
+  }, [dashboardTab]);
+
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [isPausingAgent, setIsPausingAgent] = useState(false);
+  const [isDeletingAgent, setIsDeletingAgent] = useState(false);
 
   // ── Billing Info ──────────────────────────────────────────────────────────
   const [billingInfo, setBillingInfo] = useState<{
@@ -288,60 +299,69 @@ export function useDashboard() {
   // Session Init
   useEffect(() => {
     const initSession = async () => {
-      const supabase = getClientSafe();
-      if (supabase) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const { id, email = '', user_metadata } = session.user;
-          setUser({ id, email, fullName: user_metadata?.full_name || 'Active User' });
-          try {
-            const res = await fetch(`/api/agents?userId=${id}`);
-            const resData = await res.json();
-            if (resData.success && resData.agents?.length > 0) {
-              const mapped = (resData.agents as DbAgent[]).map((a): Agent => ({
-                id: a.id, businessName: a.business_name, industry: a.industry,
-                tone: a.tone, services: a.services, leadEmail: a.lead_email,
-                phoneNumber: a.phone_numbers?.[0]?.twilio_phone_number ?? a.phone_number ?? '+1 (415) 890-3456',
-                providerAgentId: a.provider_agent_id, status: a.status,
-                googleSheetUrl: a.google_sheet_url ?? '',
-                voiceId: a.latest_config?.voiceId || 'openai-Alloy',
-                llmModel: a.latest_config?.llmModel || 'gpt-4o-mini',
-                language: a.latest_config?.language || 'English (US)',
-              }));
-              setAgents(mapped);
-              setSelectedAgentId(mapped[0].id);
-              const { data: dbCalls } = await supabase.from('calls').select('*').eq('user_id', id).order('created_at', { ascending: false });
-              const { data: dbLeads } = await supabase.from('leads').select('*').eq('user_id', id);
-              if (dbCalls?.length) {
-                setCalls(mapDbCallsToCalls(dbCalls as unknown as DbCall[], (dbLeads || []) as unknown as DbLead[]));
+      try {
+        const supabase = getClientSafe();
+        if (supabase) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            const { id, email = '', user_metadata, app_metadata } = session.user;
+            setUser({ 
+              id, 
+              email, 
+              fullName: user_metadata?.full_name || 'Active User',
+              provider: app_metadata?.provider || session.user.identities?.[0]?.provider || 'email'
+            });
+            try {
+              const res = await fetch(`/api/agents?userId=${id}`);
+              const resData = await res.json();
+              if (resData.success && resData.agents?.length > 0) {
+                const mapped = (resData.agents as DbAgent[]).map((a): Agent => ({
+                  id: a.id, businessName: a.business_name, industry: a.industry,
+                  tone: a.tone, services: a.services, leadEmail: a.lead_email,
+                  phoneNumber: a.phone_numbers?.[0]?.twilio_phone_number ?? a.phone_number ?? '+1 (415) 890-3456',
+                  providerAgentId: a.provider_agent_id, status: a.status,
+                  googleSheetUrl: a.google_sheet_url ?? '',
+                  voiceId: a.latest_config?.voiceId || 'openai-Alloy',
+                  llmModel: a.latest_config?.llmModel || 'gpt-4o-mini',
+                  language: a.latest_config?.language || 'English (US)',
+                }));
+                setAgents(mapped);
+                setSelectedAgentId(mapped[0].id);
+                const { data: dbCalls } = await supabase.from('calls').select('*').eq('user_id', id).order('created_at', { ascending: false });
+                if (dbCalls?.length) {
+                  setCalls(mapDbCallsToCalls(dbCalls as unknown as DbCall[]));
+                }
+              } else {
+                setDashboardTab('onboarding');
               }
-            } else {
-              router.push('/onboarding');
+            } catch {
+              setDashboardTab('onboarding');
             }
-          } catch {
-            router.push('/onboarding');
+          } else {
+            router.push('/auth/login');
           }
         } else {
-          router.push('/auth/login');
+          const local = localStorage.getItem('ringit_sandbox_user');
+          if (local) {
+            const parsed = JSON.parse(local);
+            setUser(parsed);
+            const mock: Agent[] = [{
+              id: 'mock-agent-1', businessName: 'Dental Care Inc.', industry: 'Dental',
+              tone: 'Warm and friendly', services: 'Teeth cleaning, whitening, cavity fillings',
+              leadEmail: parsed.email, phoneNumber: '+1 (415) 961-4820',
+              providerAgentId: 'agent_retell_101', status: 'active', googleSheetUrl: '',
+            }];
+            setAgents(mock);
+            setSelectedAgentId(mock[0].id);
+          } else {
+            router.push('/auth/login');
+          }
         }
-      } else {
-        const local = localStorage.getItem('ringit_sandbox_user');
-        if (local) {
-          const parsed = JSON.parse(local);
-          setUser(parsed);
-          const mock: Agent[] = [{
-            id: 'mock-agent-1', businessName: 'Dental Care Inc.', industry: 'Dental',
-            tone: 'Warm and friendly', services: 'Teeth cleaning, whitening, cavity fillings',
-            leadEmail: parsed.email, phoneNumber: '+1 (415) 961-4820',
-            providerAgentId: 'agent_retell_101', status: 'active', googleSheetUrl: '',
-          }];
-          setAgents(mock);
-          setSelectedAgentId(mock[0].id);
-        } else {
-          router.push('/auth/login');
-        }
+      } catch (err) {
+        console.error('Session initialization error:', err);
+      } finally {
+        setIsAuthLoading(false);
       }
-      setIsAuthLoading(false);
     };
     initSession();
   }, [router]);
@@ -419,9 +439,8 @@ export function useDashboard() {
       const supabase = getClientSafe();
       if (supabase) {
         const { data: dbCalls } = await supabase.from('calls').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
-        const { data: dbLeads } = await supabase.from('leads').select('*').eq('user_id', user.id);
         if (dbCalls) {
-          setCalls(mapDbCallsToCalls(dbCalls as unknown as DbCall[], (dbLeads || []) as unknown as DbLead[]));
+          setCalls(mapDbCallsToCalls(dbCalls as unknown as DbCall[]));
         }
       }
       if (showToast) toast('Calls are up to date!', 'success');
@@ -458,6 +477,7 @@ export function useDashboard() {
 
   const handleEditAgent = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSavingSettings(true);
     try {
       const res = await fetch(`/api/agents/${currentAgent.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -466,12 +486,13 @@ export function useDashboard() {
       if (!res.ok) throw new Error('API patch failed');
     } catch {
       /* fallback to local update */
+    } finally {
+      setIsSavingSettings(false);
     }
     setAgents((prev) => prev.map((a) => a.id === currentAgent.id ? { ...a, ...editForm } : a));
     setEditFormOverrides({});
     toast('Receptionist settings updated successfully!', 'success');
     if (user?.id) fetchBillingInfo(user.id);
-    setDashboardTab('dashboard');
   };
 
   const deployPromptVersion = async (promptText: string) => {
@@ -494,24 +515,30 @@ export function useDashboard() {
 
   const toggleAgentPause = async () => {
     const next = currentAgent.status === 'active' ? 'paused' : 'active';
+    setIsPausingAgent(true);
     try {
       await fetch(`/api/agents/${currentAgent.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: next }) });
-    } catch { /* sandbox fallback */ }
+    } catch { /* sandbox fallback */ } finally {
+      setIsPausingAgent(false);
+    }
     setAgents((prev) => prev.map((a) => a.id === currentAgent.id ? { ...a, status: next } : a));
     toast(`Receptionist is now ${next === 'paused' ? 'Paused' : 'Active'}`, 'info');
   };
 
   const handleDeleteAgent = async () => {
     if (!confirm(`Delete receptionist for ${currentAgent.businessName}?`)) return;
+    setIsDeletingAgent(true);
     try {
       await fetch(`/api/agents/${currentAgent.id}`, { method: 'DELETE' });
-    } catch { /* sandbox fallback */ }
+    } catch { /* sandbox fallback */ } finally {
+      setIsDeletingAgent(false);
+    }
     const remaining = agents.filter((a) => a.id !== currentAgent.id);
     setAgents(remaining);
     toast('Agent de-provisioned successfully.', 'success');
     if (user?.id) fetchBillingInfo(user.id);
     if (remaining.length > 0) { setSelectedAgentId(remaining[0].id); setDashboardTab('dashboard'); }
-    else router.push('/onboarding');
+    else setDashboardTab('onboarding');
   };
 
   const startRecording = async () => {
@@ -638,6 +665,7 @@ export function useDashboard() {
     setDashboardTab,
     billingInfo,
     agents,
+    setAgents,
     selectedAgentId,
     setSelectedAgentId,
     calls,
@@ -691,6 +719,9 @@ export function useDashboard() {
     fetchAgentVersions,
     syncRetellCalls,
     handleSignOut,
+    isSavingSettings,
+    isPausingAgent,
+    isDeletingAgent,
     handleEditAgent,
     deployPromptVersion,
     toggleAgentPause,
